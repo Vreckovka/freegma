@@ -1,0 +1,13 @@
+node_modules/
+dist/
+data/
+logs/
+.env
+.env.*
+!.env.example
+*.sqlite*
+.yarn/cache/
+.yarn/unplugged/
+.DS_Store
+backups/
+showcase-data/

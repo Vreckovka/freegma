@@ -1,0 +1,10 @@
+import fs from 'node:fs/promises';
+import path from 'node:path';
+import {build} from 'esbuild';
+import {sourceRoot,buildRoot} from '../server/paths.mjs';
+const output=process.env.FREEGMA_BUILD||buildRoot;
+await fs.mkdir(output,{recursive:true});
+await build({entryPoints:[path.join(sourceRoot,'client/theme-init.mjs')],bundle:true,format:'iife',target:['chrome110','firefox115','safari16'],outfile:path.join(output,'theme.js'),minify:true,logLevel:'info'});
+await build({entryPoints:[path.join(sourceRoot,'client/App.jsx')],bundle:true,format:'esm',target:['chrome110','firefox115','safari16'],outfile:path.join(output,'app.js'),minify:true,define:{'process.env.NODE_ENV':'"production"'},logLevel:'info'});
+await fs.copyFile(path.join(sourceRoot,'client/index.html'),path.join(output,'index.html'));
+console.log('Freegma built: '+output);
