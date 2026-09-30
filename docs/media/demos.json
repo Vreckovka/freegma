@@ -1,0 +1,206 @@
+{
+  "components.gif": [
+    {
+      "file": "component-01-instance.png",
+      "title": "Inspect a linked instance",
+      "detail": "Browse locked properties. Go to main component opens the shared source.",
+      "duration": 2600
+    },
+    {
+      "file": "component-02-master.png",
+      "title": "Edit the main component",
+      "detail": "The parent library supplies the same card to Light and Dark boards.",
+      "duration": 2600
+    },
+    {
+      "file": "component-03-master-edited.png",
+      "title": "One master edit, every linked use",
+      "detail": "Set Corner to 24. Use linked usages to navigate back to the design.",
+      "duration": 2600
+    },
+    {
+      "file": "component-04-updated-use.png",
+      "title": "The instance inherits Corner = 24",
+      "detail": "The lock keeps this value following its master.",
+      "duration": 2600
+    },
+    {
+      "file": "component-05-local-override.png",
+      "title": "Override only Corner = 48",
+      "detail": "The orange warning identifies a local value kept on master updates.",
+      "duration": 2600
+    },
+    {
+      "file": "component-06-reset.png",
+      "title": "Reset to the latest master",
+      "detail": "Corner returns to 24 and is locked again. Other local overrides stay intact.",
+      "duration": 2600
+    }
+  ],
+  "colors.gif": [
+    {
+      "file": "colors-01-bound-text-border.png",
+      "title": "One Text role, two visible properties",
+      "detail": "Primary text and the card outline are linked to Text. Background is separate.",
+      "duration": 2600
+    },
+    {
+      "file": "colors-02-picker.png",
+      "title": "Open the Text color picker",
+      "detail": "The schematic belongs to the parent and is shared with child folders.",
+      "duration": 2600
+    },
+    {
+      "file": "colors-03-preview.png",
+      "title": "Preview locally while editing",
+      "detail": "Text and outline change together. Muted text and backgrounds stay unchanged.",
+      "duration": 1800
+    },
+    {
+      "file": "colors-04-mint-preview.png",
+      "title": "Primary text + border turn mint green",
+      "detail": "Text = #8FE1C7. The visible board previews the same role in both places.",
+      "duration": 3400
+    },
+    {
+      "file": "colors-05-saved.png",
+      "title": "Save one accepted color change",
+      "detail": "Save color closes the picker. Other boards use the saved role when opened.",
+      "duration": 2600
+    },
+    {
+      "file": "colors-06-undo.png",
+      "title": "One Undo restores both",
+      "detail": "Ctrl+Z restores the original Text value without changing the background.",
+      "duration": 2600
+    }
+  ],
+  "themes.gif": [
+    {
+      "file": "colors-06-undo.png",
+      "title": "One shared layout, multiple palettes",
+      "detail": "Design themes supply values for the same schematic roles.",
+      "duration": 2600
+    },
+    {
+      "file": "themes-02-light.png",
+      "title": "Switch Design theme to Light",
+      "detail": "The same component IDs and geometry render with the Light values.",
+      "duration": 2600
+    },
+    {
+      "file": "themes-03-dark.png",
+      "title": "Switch back to Dark",
+      "detail": "Theme folders are for optional extras; shared components stay in the parent.",
+      "duration": 2600
+    }
+  ],
+  "layout-css.gif": [
+    {
+      "file": "css-01-master-layout.png",
+      "title": "Start from the editable master",
+      "detail": "Inherited instance CSS stays locked unless explicitly overridden.",
+      "duration": 2600
+    },
+    {
+      "file": "css-02-generated.png",
+      "title": "Generate JSX + real CSS",
+      "detail": "Stable layer selectors connect the stylesheet to native design properties.",
+      "duration": 2600
+    },
+    {
+      "file": "css-03-edit.png",
+      "title": "Edit the CSS values",
+      "detail": "Change border-radius to 12px and gap to 20px, then Apply CSS to design.",
+      "duration": 2600
+    },
+    {
+      "file": "css-04-applied.png",
+      "title": "Apply one atomic design edit",
+      "detail": "The editor saves the stylesheet changes as native component properties.",
+      "duration": 2600
+    },
+    {
+      "file": "css-05-native-result.png",
+      "title": "Inspect Corner = 12 and Gap = 20",
+      "detail": "Both values are now native fields on the master.",
+      "duration": 2600
+    },
+    {
+      "file": "css-06-linked-result.png",
+      "title": "Linked uses inherit the CSS change",
+      "detail": "The instance receives 12 / 20 and remains read-only for those properties.",
+      "duration": 2600
+    }
+  ],
+  "comments.gif": [
+    {
+      "file": "comments-01-pin.png",
+      "title": "Pin feedback to a linked component",
+      "detail": "Comments annotate the design without editing inherited component values.",
+      "duration": 2600
+    },
+    {
+      "file": "comments-02-saved.png",
+      "title": "Save the feedback thread",
+      "detail": "The pin stays anchored to its design layer.",
+      "duration": 2600
+    },
+    {
+      "file": "comments-03-reply.png",
+      "title": "Reply with implementation guidance",
+      "detail": "Explain shared masters and role bindings in the same thread.",
+      "duration": 2600
+    },
+    {
+      "file": "comments-04-resolved.png",
+      "title": "Resolve completed feedback",
+      "detail": "The Resolved filter lets you revisit closed threads.",
+      "duration": 2600
+    }
+  ],
+  "hero.gif": [
+    {
+      "file": "component-01-instance.png",
+      "title": "Inspect a linked instance",
+      "detail": "Browse locked properties. Go to main component opens the shared source.",
+      "duration": 2600
+    },
+    {
+      "file": "component-03-master-edited.png",
+      "title": "One master edit, every linked use",
+      "detail": "Set Corner to 24. Use linked usages to navigate back to the design.",
+      "duration": 2600
+    },
+    {
+      "file": "component-05-local-override.png",
+      "title": "Override only Corner = 48",
+      "detail": "The orange warning identifies a local value kept on master updates.",
+      "duration": 2600
+    },
+    {
+      "file": "colors-04-mint-preview.png",
+      "title": "Primary text + border turn mint green",
+      "detail": "Text = #8FE1C7. The visible board previews the same role in both places.",
+      "duration": 3400
+    },
+    {
+      "file": "themes-02-light.png",
+      "title": "Switch Design theme to Light",
+      "detail": "The same component IDs and geometry render with the Light values.",
+      "duration": 2600
+    },
+    {
+      "file": "css-06-linked-result.png",
+      "title": "Linked uses inherit the CSS change",
+      "detail": "The instance receives 12 / 20 and remains read-only for those properties.",
+      "duration": 2600
+    },
+    {
+      "file": "comments-03-reply.png",
+      "title": "Reply with implementation guidance",
+      "detail": "Explain shared masters and role bindings in the same thread.",
+      "duration": 2600
+    }
+  ]
+}

@@ -37,18 +37,31 @@ Freegma runs independently of task dashboards, worker clients and external accou
 
 Layers label **Master** and **Instance**. Select an instance or its child to see the owning project, stable component ID and linked usages. **Go to main component** jumps to its source. Saved master edits update uses across boards and theme folders automatically, while local overrides stay yours. Instances are read-only until you click a property’s lock to enable its local override. An orange warning and Reset control show which values are preserved. Browse layers freely; use All property overrides for individual native properties or CSS declarations. The starter template includes two linked Cards and Buttons to try this.
 
-The editable Freegma Studio example now shares its controls and preview cards from a parent library. [Folders, themes and component guide](docs/projects-and-themes.md).
+1. Insert from **Assets → Components** to create a linked use.
+2. Select it in Layers: the lock means inherited properties are read-only. **Go to main component** opens the source.
+3. Edit the master once; linked uses update automatically across boards and theme folders.
+4. Click a property’s lock to enable only that local override. The orange warning means it is kept on master updates. **Reset** follows the latest master again.
+
+![Inspect a linked instance, edit its master, override one property and reset](docs/media/components.gif)
+
+The editable Freegma Studio example shares its controls and preview cards from a parent library. [Folders, themes and component guide](docs/projects-and-themes.md).
 
 
-### Live colors, one Undo step
+### Color roles: change text and borders together
 
-Drag, type HEX/RGB, or use the system picker. The open board previews locally; closing the picker or changing workspace saves one action. Escape cancels. Shared schematic roles and themes inherit through folders, while original local colors remain available.
+A **schematic** is the project’s list of named color roles, such as Background, Text, Border and Accent. Each **theme** supplies a value for every role. Parent projects share their schematic and themes with child folders.
 
-![Live palette preview and Undo](docs/media/colors.gif)
+Choose a layer property’s **Color role** to link it, or keep **Local color** for an independent value. One role can feed several properties: in this demo, **Text** drives both primary text and the preview card’s outline. Changing Text turns both mint green; the background and muted text stay unchanged.
+
+Open **Colors**, pick the role’s swatch, then drag or enter HEX/RGB. The open board previews locally; **Save color**, closing the picker or changing workspace accepts one action. Escape cancels. **Ctrl+Z** restores the accepted color in one step. Other boards resolve saved roles when opened. Switching **Design theme** changes the same components without duplicating them.
+
+![The Text role changes primary text and a bound card border, then Undo restores both](docs/media/colors.gif)
+
+![The same linked layout switches between Light and Dark design themes](docs/media/themes.gif)
 
 ### Layers, spacing, and real CSS
 
-Edit native layers through the canvas or tree. Change text, geometry, padding, margins, gap, alignment, fixed/hug/fill sizing. Generate JSX + CSS, edit CSS and apply it back to the design. Copy or download files named after the component.
+Edit native layers through the canvas or tree. Change text, geometry, padding, margins, gap, alignment and sizing. For a shared component, edit the **master**, or explicitly override the instance property first. Generate JSX + CSS, edit CSS and apply it back to the design; the same property locks apply. Copy or download files named after the component. The recording edits master CSS so linked uses inherit the change.
 
 ![Native layers, spacing and generated CSS](docs/media/layout-css.gif)
 
@@ -65,7 +78,7 @@ Pin comments or drag a region. Reply, react, resolve, search, filter and copy th
 | Local colors and themed roles | Persistent Undo/Redo and stable links | MCP reads, guarded edits and exports |
 | Light and dark appearance | Pinned comments and region feedback | Optional task ID/URL reference |
 
-Animations show the actual editor working with its own studio designs. Generated React is a visual scaffold; implementation adds behavior and application data.
+Animations are captioned snapshots of real editor edits in an isolated copy of its studio designs. Captions identify the component, role or CSS operation being demonstrated. Generated React is a visual scaffold; implementation adds behavior and application data.
 
 Undo design edits with **Ctrl+Z** (or **Cmd+Z** on macOS), including property fields and color edits. Redo with **Ctrl+Shift+Z** or **Ctrl+Y**. Text, CSS and comment editors keep their normal text Undo.
 
@@ -73,7 +86,20 @@ Undo design edits with **Ctrl+Z** (or **Cmd+Z** on macOS), including property fi
 
 Open **Guide** in the editor for a short folders/components/color-themes walkthrough with an interactive example. **Workspace menu → New project** offers Empty or a Light & Dark template: one shared Button/Card library, example boards, both palettes and optional theme folders. Parent components are available in children; theme-only extras stay local. See [projects and themes](docs/projects-and-themes.md).
 
-[**Freegma-Studio.free**](examples/Freegma-Studio.free) includes **22 native design boards**, Light Mode and Dark Mode, palettes, components and templates. Import it from the workspace menu or run:
+[**Freegma-Studio.free**](examples/Freegma-Studio.free) is a portable example project containing **editable designs of Freegma itself**. A board is one canvas document; “native” means its text, frames, icons and layout are separate Freegma layers you can select and inspect.
+
+It contains **11 screen examples**, each shown in Light Mode and Dark Mode: **22 screen boards**, plus **Shared studio components**—**23 boards in total**. The parent library has **14 shared component masters** used by those screens. The file also carries their color roles, themes and independent starting templates.
+
+```text
+Freegma Example Studio
+  Shared studio components     masters reused by the screens
+  Light Mode                   11 screen examples
+  Dark Mode                    the same 11 examples in dark colors
+```
+
+These two sets are visual reference examples. For your own product, keep one set of shared components and boards, and switch their **Design theme**; use theme folders only for special extras.
+
+Import the `.free` file from the workspace menu, or run:
 
 ```sh
 yarn examples
@@ -81,6 +107,10 @@ yarn start
 ```
 
 Overview, inspector/spacing, React/CSS, components, folders, dialogs/history, foundations and portable/import views are all editable. `yarn examples` preserves existing example edits. `node scripts/export-examples.mjs` rebuilds the distributable example from native design sources.
+
+For a smaller hands-on tutorial, import [**Freegma-Feature-Tour.free**](examples/Freegma-Feature-Tour.free). It has **four boards**: Start here, Shared studio components, and one inspector screen in each theme folder. The card outline is deliberately bound to **Text**, so you can repeat the text-and-border color demo. Master edits and property overrides work as shown in the recordings.
+
+The screenshot sources and captions for the README are in `docs/media/source/` and `docs/media/demos.json`. Optional documentation tooling: install Pillow in your Python environment, then run `python scripts/build-readme-media.py` to rebuild the GIFs. This is independent of `yarn build` and `yarn start`.
 
 ## Files belong to you
 
@@ -109,7 +139,7 @@ Use `yarn mcp` or configure your agent with an absolute Node executable and `ser
 {"mcpServers":{"freegma":{"command":"/absolute/path/to/node","args":["/absolute/path/to/freegma/server/mcp.mjs"]}}}
 ```
 
-There are **27 tools** for projects, workspaces, boards, deletion previews, operations, components, images, CSS/React, portable files, colors, comments, task references and Undo/Redo. Use `freegma_create_project` with `template: "empty"` or `"light-dark"`. Read current revisions before editing. Logs use stderr; stdout remains JSON-RPC.
+There are **28 tools** for projects, workspaces, boards, deletion previews, operations, components, images, CSS/React, portable files, colors, comments, task references and Undo/Redo. Use `freegma_create_project` with `template: "empty"` or `"light-dark"`. Read current revisions before editing. Logs use stderr; stdout remains JSON-RPC.
 
 Delete a board from its **⋯** menu in the Boards list. To delete a project/workspace, open the workspace dropdown and choose **Delete workspace…**. The confirmation shows the scope and requires the exact name. Deleting a parent includes its children; deleting a board keeps shared library components and assets. Changed designs invalidate old confirmations.
 
