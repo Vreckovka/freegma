@@ -43,7 +43,8 @@ test('CSS edits remain local instance overrides when a component master is repub
     const saved=store.saveComponent(b.id,b.revision,'card','Card'),c=saved.component;
     const inserted=store.insertComponent(b.id,saved.board.revision,c.id),instance=inserted.nodeId;
     let css=store.export(b.id,instance).css.replace('padding: 14px 16px 14px 16px','padding: 28px').replace('  border-radius: 0px;','  border-radius: 0px;\n  box-shadow: 0 1px 8px #000000;');
-    let edited=store.applyCss(b.id,inserted.board.revision,css,instance);
+    const unlocked=store.mutate(b.id,inserted.board.revision,['paddingTop','paddingRight','paddingBottom','paddingLeft','cssOverrides.box-shadow'].map(property=>({op:'override',id:instance,property,enabled:true})));
+    let edited=store.applyCss(b.id,unlocked.revision,css,instance);
     edited=store.mutate(b.id,edited.revision,[{op:'update',id:'card',patch:{paddingTop:5,paddingLeft:5,fill:'#aabbcc'}}]);
     const updated=store.saveComponent(b.id,edited.revision,'card','Card','component',c.id).board;
     const n=updated.document.nodes.find(n=>n.id===instance);assert.equal(n.paddingTop,28);assert.equal(n.paddingLeft,28);assert.equal(n.fill,'#aabbcc');assert.match(layerStyle(n).boxShadow,/8px/);

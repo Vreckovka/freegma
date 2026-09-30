@@ -1,12 +1,15 @@
 import {ICON_PATHS} from './icons.mjs';
 import {validateBindings,detachPatchedColors,readPath} from './colors.mjs';
 import {validateCssOverrides,mergeCss,clearCssForPatch,cssForDocument} from './css.mjs';
-export const VERSION = "0.1.15";
+export const VERSION = "0.1.16";
 export const TYPES = ["frame", "group", "rectangle", "ellipse", "text", "image", "icon", "vector"];
 export const DEFAULTS = { x:0, y:0, width:240, height:160, rotation:0, fill:"#ffffff", color:"#172033", stroke:"#dfe4ec", strokeWidth:0, radius:0, opacity:1, fontSize:16, fontWeight:400, fontFamily:"Inter, system-ui, sans-serif", lineHeight:1.5, textAlign:"left", layout:"free", gap:16, paddingTop:0, paddingRight:0, paddingBottom:0, paddingLeft:0, marginTop:0, marginRight:0, marginBottom:0, marginLeft:0, align:"start", justify:"start", sizing:"fixed", visible:true, locked:false, clip:false, text:"", src:"", icon:"sparkles" };
 const numeric = new Set(["x","y","width","height","rotation","strokeWidth","radius","opacity","fontSize","fontWeight","lineHeight","gap","paddingTop","paddingRight","paddingBottom","paddingLeft","marginTop","marginRight","marginBottom","marginLeft"]);
 numeric.add('letterSpacing');
 const fields = new Set([...Object.keys(DEFAULTS),"name","parentId","type","componentId","componentMasterId","sourceId","overrides","reference","widthSizing","heightSizing","wrap","paths","viewBox","letterSpacing","absolute","cssOverrides","colorBindings","colorSchematic"]);
+fields.add('instancePlacement');
+export const OVERRIDE_PROPERTIES=[...fields].filter(k=>!['type','componentId','componentMasterId','sourceId','overrides','instancePlacement'].includes(k));
+export function isOverrideProperty(key){if(OVERRIDE_PROPERTIES.includes(key)||typeof key==='string'&&/^paths\.\d{1,3}\.(d|fill|stroke|strokeWidth|opacity)$/.test(key))return true;if(typeof key==='string'&&key.startsWith('cssOverrides.')){try{validateCssOverrides({[key.slice(13)]:'initial'});return true;}catch{}}return false;}
 export const clone = value => structuredClone(value);
 export function newId(prefix="node") { return `${prefix}_${globalThis.crypto.randomUUID().replaceAll("-","").slice(0,16)}`; }
 export function makeNode(type="frame", patch={}) {
@@ -44,7 +47,8 @@ export function validateDocument(document) {
     if (!['left','center','right'].includes(node.textAlign)) fail("Invalid text alignment.");
     if(typeof node.icon!=="string"||!Object.hasOwn(ICON_PATHS,node.icon))fail("Unknown icon.");
     if (node.src && !/^\/assets\/[\w.-]+$/.test(node.src)) fail("Images must be imported into Freegma assets.");
-    if (node.overrides && (!Array.isArray(node.overrides) || node.overrides.some(k=>!fields.has(k)))) fail("Invalid component overrides.");
+    if (node.overrides && (!Array.isArray(node.overrides) || node.overrides.some(k=>!isOverrideProperty(k)))) fail("Invalid component overrides.");
+    if(node.instancePlacement!=null&&(!node.componentId||Object.keys(node.instancePlacement).some(k=>!['x','y','parentId'].includes(k))||!Number.isFinite(node.instancePlacement.x)||!Number.isFinite(node.instancePlacement.y)||(node.instancePlacement.parentId!=null&&typeof node.instancePlacement.parentId!=='string')))fail('Invalid instance placement.');
     for (const key of ["visible","locked","clip","reference","absolute"]) if (node[key]!=null&&typeof node[key]!=="boolean") fail(`Invalid ${key}.`);
     for (const key of ["fill","color","stroke"]) if (node[key] && !/^(#[\da-f]{3,8}|transparent|rgba?\([\d.,%\s]+\)|hsla?\([\d.,%\s]+\))$/i.test(node[key])) fail(`Use a hex, rgb, hsl or transparent ${key}.`);
   }
@@ -61,7 +65,7 @@ export function selectionRoots(nodes,ids){const selected=new Set(ids),map=new Ma
 export function subtree(document,id) { const nodes=descendants(document.nodes,id).map(clone);if(!nodes.length)fail("Layer not found.");nodes.sort((a,b)=>a.id===id?-1:b.id===id?1:0);nodes[0].parentId=null;return {version:1,nodes}; }
 export function copyNodes(nodes,{parentId=null,x,y,componentId=null}={}) {
   const remap=new Map(nodes.map(n=>[n.id,newId()]));
-  return nodes.map((n,i)=>({...clone(n),id:remap.get(n.id),parentId:remap.get(n.parentId)||parentId,...(componentId?{sourceId:n.id,overrides:[],componentId:i===0?componentId:undefined}:{}),...(i===0?{x:x??n.x+32,y:y??n.y+32}:{}),componentMasterId:undefined})).map(n=>Object.fromEntries(Object.entries(n).filter(([,v])=>v!==undefined)));
+  return nodes.map((n,i)=>({...clone(n),id:remap.get(n.id),parentId:remap.get(n.parentId)||parentId,...(componentId?{sourceId:n.id,overrides:[],componentId:i===0?componentId:undefined}:{}),...(i===0?{x:x??n.x+32,y:y??n.y+32}:{}),componentMasterId:undefined})).map(n=>{if(n.componentId)n.instancePlacement={x:n.x,y:n.y,parentId:n.parentId};return Object.fromEntries(Object.entries(n).filter(([,v])=>v!==undefined));});
 }
 export function applyOperations(input,operations) {
   const doc=clone(input);
@@ -69,11 +73,12 @@ export function applyOperations(input,operations) {
   const find=id=>{const n=doc.nodes.find(n=>n.id===id);if(!n)fail(`Layer not found: ${id}`);return n;};
   for(const op of operations){
     if(op.op==="add") { if(!op.node||!TYPES.includes(op.node.type))fail("An add operation needs a valid layer.");doc.nodes.push(makeNode(op.node.type,op.node)); }
-    else if(op.op==="update") { const n=find(op.id);if(!op.patch||Object.keys(op.patch).some(k=>!fields.has(k)||["type","componentId","componentMasterId","sourceId","overrides"].includes(k)))fail("Invalid editable layer patch.");const oldBindings=JSON.stringify(n.colorBindings);if(Object.hasOwn(op.patch,'colorBindings'))validateBindings({...n,...op.patch});detachPatchedColors(n,op.patch);clearCssForPatch(n,op.patch);Object.assign(n,op.patch);if(n.colorBindings)n.colorBindings=n.colorBindings.filter(b=>readPath(n,b.path));if(n.sourceId)n.overrides=[...new Set([...(n.overrides||[]),...Object.keys(op.patch),...(oldBindings!==JSON.stringify(n.colorBindings)?['colorBindings']:[]),...(n.cssOverrides?['cssOverrides']:[])])]; }
+    else if(op.op==="update") { const n=find(op.id);if(!op.patch||Object.keys(op.patch).some(k=>!fields.has(k)||["type","componentId","componentMasterId","sourceId","overrides","instancePlacement"].includes(k)))fail("Invalid editable layer patch.");if(Object.hasOwn(op.patch,'colorBindings'))validateBindings({...n,...op.patch});detachPatchedColors(n,op.patch);clearCssForPatch(n,op.patch);Object.assign(n,op.patch);if(n.colorBindings)n.colorBindings=n.colorBindings.filter(b=>readPath(n,b.path)); }
+    else if(op.op==='override') {const n=find(op.id);if(!n.sourceId||!isOverrideProperty(op.property)||typeof op.enabled!=='boolean')fail('Choose one valid instance property to override.');if(op.placement)n.instancePlacement=clone(op.placement);n.overrides=op.enabled?[...new Set([...(n.overrides||[]),op.property])]:(n.overrides||[]).filter(k=>k!==op.property);if(!op.enabled&&op.restore){const r=op.restore;if(op.property.startsWith('cssOverrides.')){n.cssOverrides={...n.cssOverrides};if(r.present)n.cssOverrides[op.property.slice(13)]=clone(r.value);else delete n.cssOverrides[op.property.slice(13)];}else if(op.property.startsWith('paths.')){const [,index,key]=op.property.split('.');if(r.present&&n.paths?.[index])n.paths[index][key]=clone(r.value);}else if(r.present)n[op.property]=clone(r.value);else delete n[op.property];if(r.bindings)n.colorBindings=clone(r.bindings);if(r.css)n.cssOverrides=clone(r.css);} }
     else if(op.op==="remove") {find(op.id);const ids=new Set(descendants(doc.nodes,op.id).map(n=>n.id));doc.nodes=doc.nodes.filter(n=>!ids.has(n.id));}
     else if(op.op==="duplicate") { const n=find(op.id);doc.nodes.push(...copyNodes(subtree(doc,n.id).nodes,{parentId:n.parentId,x:op.x,y:op.y})); }
     else if(op.op==="reorder") { const n=find(op.id);const siblings=doc.nodes.filter(s=>s.parentId===n.parentId);const index=Math.max(0,Math.min(siblings.length-1,Number(op.index)));if(!Number.isInteger(op.index))fail("Layer order must be an integer.");const ordered=siblings.filter(s=>s.id!==n.id);ordered.splice(index,0,n);let i=0;doc.nodes=doc.nodes.map(s=>s.parentId===n.parentId?ordered[i++]:s); }
-    else if(op.op==="detach") { for(const n of descendants(doc.nodes,find(op.id).id)){delete n.componentId;delete n.sourceId;delete n.overrides;} }
+    else if(op.op==="detach") { for(const n of descendants(doc.nodes,find(op.id).id)){delete n.componentId;delete n.sourceId;delete n.overrides;delete n.instancePlacement;} }
     else fail(`Unknown operation: ${op.op}`);
   }
   return validateDocument(doc);

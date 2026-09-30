@@ -35,7 +35,7 @@ Freegma runs independently of task dashboards, worker clients and external accou
 
 ### Trace every shared component
 
-Layers label **Master** and **Instance**. Select an instance or its child to see the owning project, stable component ID and linked usages. **Go to main component** jumps to its source. Saved master edits update uses across boards and theme folders automatically, while local overrides stay yours. The starter template includes two linked Cards and Buttons to try this.
+Layers label **Master** and **Instance**. Select an instance or its child to see the owning project, stable component ID and linked usages. **Go to main component** jumps to its source. Saved master edits update uses across boards and theme folders automatically, while local overrides stay yours. Instances are read-only until you click a property’s lock to enable its local override. An orange warning and Reset control show which values are preserved. Browse layers freely; use All property overrides for individual native properties or CSS declarations. The starter template includes two linked Cards and Buttons to try this.
 
 The editable Freegma Studio example now shares its controls and preview cards from a parent library. [Folders, themes and component guide](docs/projects-and-themes.md).
 

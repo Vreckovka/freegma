@@ -17,6 +17,7 @@ export function validateCssOverrides(values){
 }
 export function mergeCss(style,overrides){for(const [key,value] of Object.entries(overrides||{}))style[styleName(key)]=value;return style;}
 const fieldCss={x:['left'],y:['top'],width:['width'],height:['height'],rotation:['transform'],fill:['background','background-image'],stroke:['border','border-color'],strokeWidth:['border','border-width'],radius:['border-radius'],visible:['display'],clip:['overflow'],layout:['display','flex-direction'],align:['align-items'],justify:['justify-content'],sizing:['width','height','flex'],widthSizing:['width','flex'],heightSizing:['height','flex'],wrap:['flex-wrap']};
+export const relatedCssProperties=key=>fieldCss[key]||[cssName(key)];
 export function clearCssForPatch(node,patch){
   if(!node.cssOverrides||Object.hasOwn(patch,'cssOverrides'))return;
   const values={...node.cssOverrides};
@@ -28,6 +29,7 @@ export function clearCssForPatch(node,patch){
   node.cssOverrides=values;
 }
 allowed.add('flex-wrap');
+export const CSS_PROPERTIES=[...allowed].sort();
 function declarations(style){return Object.fromEntries(Object.entries(style).filter(([,v])=>v!=null).map(([k,v])=>[cssName(k),typeof v==='number'&&!unitless.has(k)?`${v}px`:String(v)]));}
 export function cssForDocument(document,nodeId=null){
   const nodes=nodeId?subtree(document,nodeId).nodes:document.nodes,roots=nodes.filter(n=>!nodes.some(p=>p.id===n.parentId));

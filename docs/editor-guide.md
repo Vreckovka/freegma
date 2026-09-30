@@ -87,7 +87,7 @@ Runtime settings: `FREEGMA_DB` (index), `FREEGMA_WORKSPACES` (optional workspace
 
 Generate React opens the Code panel with **CSS** and **React** tabs. CSS is editable; React shows the companion JSX importing the generated stylesheet. Download both files. Layer selectors `.fg-<stable node ID>` map the exported rules back to the board. Edit a value, then **Apply CSS to design** (Ctrl+Enter). Changes are saved atomically as one history step and can be undone. Blank drafts never delete layers; omitted selectors are left alone, while deleting a declaration resets that property to CSS `initial`.
 
-Pixel geometry, spacing, typography and supported color values update native inspector fields. Other supported declarations, such as gradients, shadows, grid, percentages and `calc()`, are persisted as layer CSS and render in the canvas and exports. Editing the corresponding native inspector field clears its CSS override. Linked instance edits stay local overrides. Saved components carry their CSS. Layout guides describe native spacing; CSS-only geometry may differ.
+Pixel geometry, spacing, typography and supported color values update native inspector fields. Other supported declarations, such as gradients, shadows, grid, percentages and `calc()`, are persisted as layer CSS and render in the canvas and exports. Editing the corresponding native inspector field clears its CSS override. Linked instance edits require explicit property overrides and stay local. Saved components carry their CSS. Layout guides describe native spacing; CSS-only geometry may differ.
 
 CSS is scoped to explicitly generated layer selectors. External URLs, at-rules, nested selectors, custom properties and `!important` are rejected with an error; no JSX is executed or imported. Invalid declarations are rejected in the browser before saving. If the board changes after generation, the draft is preserved and Apply is disabled until regeneration. Copy your draft before regenerating. MCP clients can use `freegma_export_react` (returns `code` for legacy inline JSX, `jsxCode` for companion CSS JSX, `css`, `cssFilename`, `nodeId`, `revision`) and `freegma_apply_css` with the exported revision and optional nodeId scope.
 
@@ -117,6 +117,27 @@ MCP: `freegma_get_colors {workspaceId}`, `freegma_update_colors {workspaceId,exp
 
 ## Component references
 
-The Layers tree labels main components **Master** and their linked uses **Instance**. Select any layer inside one to see its **Component reference** near the top of the inspector: name, owner, component ID, source board, usage counts and overrides. **Go to main component** opens and selects the source; **Show linked usages** navigates to each reuse. Every saved master edit propagates automatically, including master Undo/Redo. Instance edits remain local overrides; detaching makes a copy independent.
+The Layers tree labels main components **Master** and their linked uses **Instance**. Select any layer inside one to see its **Component reference** near the top of the inspector: name, owner, component ID, source board, usage counts and overrides. **Go to main component** opens and selects the source; **Show linked usages** navigates to each reuse. Every saved master edit propagates automatically, including master Undo/Redo. Explicit instance overrides remain local; detaching makes a copy independent.
 
 Freegma's Light/Dark studio designs share Button variants, property fields, board/layer rows and drawing controls from the parent **Shared studio components** board. Geometry and content remain editable native layers.
+
+
+## Locked instances and independent overrides
+
+A linked instance shows a lock in Layers. You can select and expand all its layers and inspect parameters. Inherited properties are read-only: edit the master with **Go to main component**, or click the lock beside one property to enable a local override. Other properties keep following the master. The orange warning means the local value is kept on master updates. **Reset** restores that property from the latest master and locks it again. Existing overrides remain editable.
+
+For example, override **Text content** on one Button to say “Save”, while its padding and colors still come from the shared Button master. Override **Corner** independently if this use needs rounded corners. Reset Corner to follow future master changes again; the Save label remains local. **All property overrides** exposes every native editable property and each CSS declaration, such as `cssOverrides.box-shadow`. CSS application respects these same locks. Structural layer additions/removals belong in the master; detach the whole instance for independent structure.
+
+Agents use `freegma_apply_operations` with an explicit permission operation before updating an instance. Both can be one atomic, undoable batch:
+
+```json
+{
+  "boardId": "board_ID", "expectedRevision": 3,
+  "operations": [
+    {"op": "override", "id": "instance_label_ID", "property": "text", "enabled": true},
+    {"op": "update", "id": "instance_label_ID", "patch": {"text": "Save"}}
+  ]
+}
+```
+
+Use the same `override` operation with `enabled: false` to reset from the current master. Locked edits fail with HTTP 423 without saving partial changes. `freegma_component_reference` locates the master and usages.

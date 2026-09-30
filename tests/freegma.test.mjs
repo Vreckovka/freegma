@@ -57,7 +57,7 @@ test('components propagate changes while preserving overrides, stable IDs and po
     let master=store.mutate(b.id,b.revision,[{op:'add',node:root},{op:'add',node:text}]);
     const published=store.saveComponent(b.id,master.revision,root.id,'Card');master=published.board;
     const target=store.createBoard(w.id,'Instances'),inserted=store.insertComponent(target.id,target.revision,published.component.id,{x:500,y:600}),instanceText=inserted.board.document.nodes.find(n=>n.sourceId===text.id);
-    store.mutate(target.id,inserted.board.revision,[{op:'update',id:instanceText.id,patch:{text:'Override'}}]);
+    store.mutate(target.id,inserted.board.revision,[{op:'override',id:instanceText.id,property:'text',enabled:true},{op:'update',id:instanceText.id,patch:{text:'Override'}}]);
     const newChild=makeNode('icon',{parentId:root.id});master=store.mutate(b.id,master.revision,[{op:'update',id:root.id,patch:{fill:'#abcdef'}},{op:'update',id:text.id,patch:{fontSize:32,text:'Changed'}},{op:'add',node:newChild}]);
     store.saveComponent(b.id,master.revision,root.id,'Card','component',published.component.id);
     const result=store.getBoard(target.id),instance=result.document.nodes.find(n=>n.id===inserted.nodeId),label=result.document.nodes.find(n=>n.id===instanceText.id);

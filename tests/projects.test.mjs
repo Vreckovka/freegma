@@ -29,7 +29,7 @@ test('ancestor component edits propagate into children with overrides; siblings 
   const p=s.createProject('Shared','light-dark'),button=s.components(p.workspace.id).find(c=>c.name==='Button');
   let child=s.createBoard(p.children[0].id,'Theme extras');const result=s.insertComponent(child.id,child.revision,button.id);child=result.board;
   const label=child.document.nodes.find(n=>n.text==='Create something');
-  child=s.mutate(child.id,child.revision,[{op:'update',id:label.id,patch:{text:'My local label'}}]);
+  child=s.mutate(child.id,child.revision,[{op:'override',id:label.id,property:'text',enabled:true},{op:'update',id:label.id,patch:{text:'My local label'}}]);
   let master=s.boards(p.workspace.id).find(b=>b.name==='Shared components');master=s.getBoard(master.id);
   master=s.mutate(master.id,master.revision,[{op:'update',id:'shared_button',patch:{radius:20}}]);
   s.saveComponent(master.id,master.revision,'shared_button','Button','component',button.id);

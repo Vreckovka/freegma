@@ -12,7 +12,7 @@ test('saved master edits and undo/redo automatically update descendant instances
   const p=s.createProject('Product','light-dark'),c=s.components(p.workspace.id).find(c=>c.name==='Button');
   let master=s.getBoard(s.boards(p.workspace.id).find(b=>b.name==='Shared components').id);
   let child=s.createBoard(p.children[0].id,'Light board');const insert=s.insertComponent(child.id,child.revision,c.id,{x:240,y:50});child=insert.board;
-  const label=child.document.nodes.find(n=>n.type==='text');child=s.mutate(child.id,child.revision,[{op:'update',id:label.id,patch:{text:'My local label'}}]);
+  const label=child.document.nodes.find(n=>n.type==='text');child=s.mutate(child.id,child.revision,[{op:'override',id:label.id,property:'text',enabled:true},{op:'update',id:label.id,patch:{text:'My local label'}}]);
   const beforeOrder=s.getBoard(p.board.id).document.nodes.map(n=>n.id);
   master=s.mutate(master.id,master.revision,[{op:'update',id:'shared_button',patch:{radius:24,paddingLeft:30,name:'Action button'}}]);
   for(const boardId of [child.id,p.board.id]){const b=s.getBoard(boardId);for(const n of b.document.nodes.filter(n=>n.componentId===c.id))assert.equal(n.radius,24);}

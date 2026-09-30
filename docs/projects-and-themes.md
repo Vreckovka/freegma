@@ -67,3 +67,24 @@ Layers show **Master** for a source and **Instance** for a linked use. Selecting
 Use **Go to main component** to open and select the source. **Show linked usages** lets you navigate to each instance. Change the master’s padding or radius: all non-overridden uses update automatically. Undo/redo on the master propagates too. Editing an instance’s label creates a local override; master changes preserve it. Detach an instance to make it independent.
 
 The Light & Dark starter has two linked Cards and Buttons in the same example so you can verify one source changes both. Parent Assets are shared by child folders; theme colors resolve where each instance is used. Templates create independent copies; they do not update with their source.
+
+
+## Locked instances and independent overrides
+
+A linked instance shows a lock in Layers. You can select and expand all its layers and inspect parameters. Inherited properties are read-only: edit the master with **Go to main component**, or click the lock beside one property to enable a local override. Other properties keep following the master. The orange warning means the local value is kept on master updates. **Reset** restores that property from the latest master and locks it again. Existing overrides remain editable.
+
+For example, override **Text content** on one Button to say “Save”, while its padding and colors still come from the shared Button master. Override **Corner** independently if this use needs rounded corners. Reset Corner to follow future master changes again; the Save label remains local. **All property overrides** exposes every native editable property and each CSS declaration, such as `cssOverrides.box-shadow`. CSS application respects these same locks. Structural layer additions/removals belong in the master; detach the whole instance for independent structure.
+
+Agents use `freegma_apply_operations` with an explicit permission operation before updating an instance. Both can be one atomic, undoable batch:
+
+```json
+{
+  "boardId": "board_ID", "expectedRevision": 3,
+  "operations": [
+    {"op": "override", "id": "instance_label_ID", "property": "text", "enabled": true},
+    {"op": "update", "id": "instance_label_ID", "patch": {"text": "Save"}}
+  ]
+}
+```
+
+Use the same `override` operation with `enabled: false` to reset from the current master. Locked edits fail with HTTP 423 without saving partial changes. `freegma_component_reference` locates the master and usages.
