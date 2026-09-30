@@ -59,6 +59,8 @@ Open **Colors**, pick the role’s swatch, then drag or enter HEX/RGB. The open 
 
 ![The same linked layout switches between Light and Dark design themes](docs/media/themes.gif)
 
+Both side panels collapse with their corner chevron. Drag the inner edge to resize, or focus the divider and use arrow keys. Layers has a 200 px minimum and the inspector 248 px; double-click resets its width. Widths and collapse preferences are saved locally, independently of designs. Narrow windows temporarily fold panels to preserve canvas space.
+
 ### Layers, spacing, and real CSS
 
 Edit native layers through the canvas or tree. Change text, geometry, padding, margins, gap, alignment and sizing. For a shared component, edit the **master**, or explicitly override the instance property first. Generate JSX + CSS, edit CSS and apply it back to the design; the same property locks apply. Copy or download files named after the component. The recording edits master CSS so linked uses inherit the change.

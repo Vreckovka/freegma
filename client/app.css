@@ -68,3 +68,17 @@
 .property-guard{position:relative;min-width:0}.property-guard>fieldset{border:0;padding:0;margin:0;min-width:0}.property-guard>fieldset:disabled{opacity:.75}.property-guard-actions{position:absolute;right:3px;top:2px;z-index:2;display:flex;align-items:center;gap:3px;background:var(--ui-panel);border-radius:3px}.property-guard-actions button{padding:2px;display:flex;color:var(--muted)}.property-guard-actions button:hover{color:var(--accent)}.property-guard .field>span,.property-guard .select-field{padding-right:25px}.override-warning,.override-notice{color:#e9b568!important}.instance-lock-notice{font-size:11px;line-height:1.6}.advanced-overrides{border-top:1px solid var(--border);padding-top:12px}.advanced-overrides summary{cursor:pointer}.advanced-overrides select,.advanced-overrides textarea{width:100%;padding:8px;background:var(--ui-field);border:1px solid var(--border);border-radius:5px;margin:7px 0}.advanced-overrides textarea{min-height:85px}.selection-title>.property-guard{flex:1}.selection-title>.property-guard input{width:100%}.component-badge svg{vertical-align:middle;margin-right:2px}
 
 [data-theme=light] .override-warning,[data-theme=light] .override-notice{color:#926000!important}
+
+/* Editor chrome preferences are independent of design documents. */
+.studio-body,.studio-body.code-open{grid-template-columns:var(--left-width,230px) minmax(0,1fr) var(--right-width,274px)}
+.side-panel{position:relative;min-width:0;min-height:0;background:var(--ui-panel)}
+.side-panel-content{height:100%;min-width:0}.side-panel-content[hidden]{display:none}
+.side-panel-content>.layers-panel,.side-panel-content>.properties-panel{height:100%;min-width:0}
+.side-panel .panel-tabs{padding-right:40px;gap:12px}.side-panel-right .panel-tabs{gap:8px;padding-left:10px}.side-panel-right .panel-revision{display:none}
+.panel-collapse{position:absolute;right:7px;top:10px;width:26px;height:28px;display:grid;place-items:center;border-radius:5px;color:var(--muted);z-index:6}
+.panel-collapse:hover{background:var(--ui-active);color:var(--accent)}.side-panel.is-collapsed .panel-collapse{right:7px}
+.side-panel.is-collapsed{border-inline:1px solid var(--border)}
+.panel-resizer{position:absolute;top:0;bottom:0;width:7px;right:-3px;cursor:col-resize;touch-action:none;z-index:7}
+.side-panel-right .panel-resizer{right:auto;left:-3px}
+.panel-resizer:hover,.panel-resizer:focus-visible,.resizing-panels .panel-resizer{background:var(--accent);opacity:.65;outline:0}
+.resizing-panels{cursor:col-resize;user-select:none}.resizing-panels .canvas{pointer-events:none}

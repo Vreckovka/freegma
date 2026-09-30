@@ -1,0 +1,12 @@
+import React,{useRef} from 'react';
+import {Icon} from './icons.jsx';
+import {PANEL_LIMITS,PANEL_RAIL} from './panels.mjs';
+export function SidePanel({side,width,max,onWidth,onToggle,children}){
+  const drag=useRef(null),collapsed=width===PANEL_RAIL,label=side==='left'?'Layers':'Inspector';
+  function finish(event,cancel=false){const d=drag.current;if(!d)return;drag.current=null;d.body.classList.remove('resizing-panels');d.body.style.setProperty('--'+side+'-width',(cancel?d.start:d.next)+'px');if(event.currentTarget.hasPointerCapture(event.pointerId))event.currentTarget.releasePointerCapture(event.pointerId);if(!cancel)onWidth(d.next);}
+  return <section className={'side-panel side-panel-'+side+(collapsed?' is-collapsed':'')} aria-label={label+' panel'}>
+    <button className="panel-collapse" aria-label={(collapsed?'Expand ':'Collapse ')+label+' panel'} aria-expanded={!collapsed} aria-controls={side+'-panel-content'} title={(collapsed?'Expand ':'Collapse ')+label+' panel'} onClick={onToggle}><Icon name="chevron" size={16} style={{transform:(side==='left'?!collapsed:collapsed)?'rotate(180deg)':undefined}}/></button>
+    <div id={side+'-panel-content'} className="side-panel-content" hidden={collapsed}>{children}</div>
+    {!collapsed&&<div className="panel-resizer" role="separator" tabIndex={0} aria-label={'Resize '+label+' panel'} aria-orientation="vertical" aria-valuemin={PANEL_LIMITS[side].min} aria-valuemax={max} aria-valuenow={width} title="Drag to resize · Arrow keys adjust · Double-click resets" onPointerDown={e=>{if(e.button!==0)return;e.preventDefault();const body=e.currentTarget.closest('.studio-body');drag.current={body,x:e.clientX,start:width,next:width};body.classList.add('resizing-panels');e.currentTarget.setPointerCapture(e.pointerId);}} onPointerMove={e=>{const d=drag.current;if(!d)return;d.next=Math.round(Math.max(PANEL_LIMITS[side].min,Math.min(max,d.start+(e.clientX-d.x)*(side==='left'?1:-1))));d.body.style.setProperty('--'+side+'-width',d.next+'px');}} onPointerUp={e=>finish(e)} onPointerCancel={e=>finish(e,true)} onLostPointerCapture={e=>finish(e,true)} onDoubleClick={()=>onWidth(Math.min(max,PANEL_LIMITS[side].default))} onKeyDown={e=>{if(!['ArrowLeft','ArrowRight','Home','End','Escape'].includes(e.key))return;e.preventDefault();if(e.key==='Escape')return finish(e,true);const delta=(e.key==='ArrowRight'?1:-1)*(side==='left'?1:-1)*(e.shiftKey?40:10);onWidth(Math.max(PANEL_LIMITS[side].min,Math.min(max,e.key==='Home'?PANEL_LIMITS[side].min:e.key==='End'?max:width+delta)));}}/>}
+  </section>;
+}
