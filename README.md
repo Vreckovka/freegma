@@ -100,7 +100,11 @@ Use `yarn mcp` or configure your agent with an absolute Node executable and `ser
 {"mcpServers":{"freegma":{"command":"/absolute/path/to/node","args":["/absolute/path/to/freegma/server/mcp.mjs"]}}}
 ```
 
-There are **24 tools** for workspaces, boards, operations, components, images, CSS/React, portable files, colors, comments, task references and Undo/Redo. Read current revisions before editing. Logs use stderr; stdout remains JSON-RPC.
+There are **26 tools** for workspaces, boards, deletion previews, operations, components, images, CSS/React, portable files, colors, comments, task references and Undo/Redo. Read current revisions before editing. Logs use stderr; stdout remains JSON-RPC.
+
+Delete a board from its **⋯** menu in the Boards list. To delete a project/workspace, open the workspace dropdown and choose **Delete workspace…**. The confirmation shows the scope and requires the exact name. Deleting a parent includes its children; deleting a board keeps shared library components and assets. Changed designs invalidate old confirmations.
+
+Deleted files are retained in `data/workspaces/.trash/deletion_ID/`, including a `deletion.json` inventory. To recover, stop all Freegma HTTP/MCP clients and copy the archived files back to their original relative paths; for an individual board, add its `{id,path:"b/board_ID.free"}` reference to the workspace manifest. Avoid overwriting newer files. Restart Freegma to rebuild the SQLite index. Deletion is separate from canvas Undo.
 
 ## Configuration and embedding
 

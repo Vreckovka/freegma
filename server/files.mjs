@@ -40,7 +40,7 @@ export class DesignFiles {
     const target=path.resolve(this.root,relative);if(!target.startsWith(this.root+path.sep))fail('File is outside Freegma storage.');
     for(let at=target;at!==this.root;at=path.dirname(at))if(fs.existsSync(at)&&fs.lstatSync(at).isSymbolicLink())fail('Freegma storage cannot contain symbolic links.');return target;
   }
-  bytes(relative){const staged=this.pending?.get(relative);return staged??fs.readFileSync(this.resolve(relative));}
+  bytes(relative){if(this.pending?.has(relative)){const staged=this.pending.get(relative);if(staged===null)fail('File was deleted.',404);return staged;}return fs.readFileSync(this.resolve(relative));}
   json(relative){try{return JSON.parse(this.bytes(relative).toString('utf8'));}catch(e){if(e.status)throw e;fail('Unreadable Freegma file: '+relative,500);}}
   validated(relative,validate,copy=true){
     if(this.pending?.has(relative)){const value=validate(this.json(relative));return copy?structuredClone(value):value;}
@@ -53,8 +53,10 @@ export class DesignFiles {
     return copy?structuredClone(entry.value):entry.value;
   }
   stage(relative,value){this.resolve(relative);if(!this.pending)throw Error('File writes require a storage transaction.');this.pending.set(relative,Buffer.isBuffer(value)?value:Buffer.from(JSON.stringify(value,null,2)+'\n'));}
+  remove(relative){this.resolve(relative);if(!this.pending)throw Error('File deletion requires a storage transaction.');this.pending.set(relative,null);}
+  publish(entry){if(entry.base64===null){fs.rmSync(this.resolve(entry.file),{force:true});}else this.atomic(entry.file,Buffer.from(entry.base64,'base64'));const cached=this.cache.get(entry.file);if(cached){this.cacheBytes-=cached.bytes;this.cache.delete(entry.file);}}
   atomic(relative,bytes){const target=this.resolve(relative);fs.mkdirSync(path.dirname(target),{recursive:true});const temp=target+'.'+newId('tmp');let fd;try{fd=fs.openSync(temp,'wx');fs.writeFileSync(fd,bytes);fs.fsyncSync(fd);fs.closeSync(fd);fd=null;fs.renameSync(temp,target);}finally{if(fd!=null)fs.closeSync(fd);if(fs.existsSync(temp))fs.unlinkSync(temp);}}
-  flush(){if(!this.pending?.size)return false;const entries=[...this.pending].map(([file,bytes])=>({file,base64:bytes.toString('base64')}));this.atomic('.transaction.json',Buffer.from(JSON.stringify({version:1,entries})));for(const entry of entries)this.atomic(entry.file,Buffer.from(entry.base64,'base64'));return true;}
+  flush(){if(!this.pending?.size)return false;const entries=[...this.pending].map(([file,bytes])=>({file,base64:bytes===null?null:bytes.toString('base64')}));this.atomic('.transaction.json',Buffer.from(JSON.stringify({version:1,entries})));for(const entry of entries)this.publish(entry);return true;}
   finish(){const journal=this.resolve('.transaction.json');if(fs.existsSync(journal))fs.unlinkSync(journal);}
-  recover(){const journal=this.resolve('.transaction.json');if(!fs.existsSync(journal))return false;const pending=JSON.parse(fs.readFileSync(journal,'utf8'));if(pending.version!==1||!Array.isArray(pending.entries))fail('Invalid Freegma recovery journal.',500);for(const e of pending.entries){this.resolve(e.file);if(e.file==='.transaction.json')fail('Invalid recovery target.',500);}for(const e of pending.entries)this.atomic(e.file,Buffer.from(e.base64,'base64'));return true;}
+  recover(){const journal=this.resolve('.transaction.json');if(!fs.existsSync(journal))return false;const pending=JSON.parse(fs.readFileSync(journal,'utf8'));if(pending.version!==1||!Array.isArray(pending.entries))fail('Invalid Freegma recovery journal.',500);for(const e of pending.entries){this.resolve(e.file);if(e.file==='.transaction.json'||(e.base64!==null&&typeof e.base64!=='string'))fail('Invalid recovery target.',500);}for(const e of pending.entries)this.publish(e);return true;}
 }

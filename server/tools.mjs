@@ -1,6 +1,8 @@
 import {VERSION} from '../shared/design.mjs';
 const str={type:'string'},num={type:'number'},schema=(properties,required=[])=>({type:'object',properties,required,additionalProperties:false});
 export const toolDefinitions=[
+  ['freegma_deletion_preview','Read exact board or workspace deletion scope and a confirmation token. Workspace deletion includes all descendants. Does not delete anything.',schema({kind:{type:'string',enum:['board','workspace']},id:str},['kind','id'])],
+  ['freegma_delete_design','Delete a board or a workspace and its descendants after explicit user authorization. Supply exact confirmName and confirmationToken from a fresh deletion preview. Files are retained in local .trash; stale confirmations are rejected.',schema({kind:{type:'string',enum:['board','workspace']},id:str,confirmName:str,confirmationToken:str},['kind','id','confirmName','confirmationToken'])],
   ['freegma_list_comments','Read board or workspace comment threads, replies, reactions, resolution state and stable thread URLs. Deleted comments are omitted.',schema({boardId:str,workspaceId:str})],
   ['freegma_comment','Edit local board comments independently of drawing history. actor is {id,name}; expectedCommentsRevision is required. operation.op: create(x,y,text,anchor optional {nodeId,offsetX,offsetY},region optional {width,height}), reply(threadId,text), edit(threadId,messageId,text), deleteMessage/restoreMessage(threadId,messageId), deleteThread/restoreThread(threadId), resolve(threadId,resolved), move(threadId,x,y,anchor,region), react(threadId,messageId,emoji). Original authors own edits/deletions; reactions toggle. Local identities are display labels, not authenticated accounts.',schema({boardId:str,expectedCommentsRevision:{type:'integer'},actor:{type:'object'},operation:{type:'object'}},['boardId','expectedCommentsRevision','actor','operation'])],
   ['freegma_get_colors','Read the inherited project color schematic, all themes, active workspace theme and palette revision. Semantic roles bind native layer colors.',schema({workspaceId:str},['workspaceId'])],
@@ -25,7 +27,7 @@ export const toolDefinitions=[
   ['freegma_link_task','Attach an optional task ID or task URL to a design. Does not modify the task system.',schema({boardId:str,expectedRevision:{type:'integer'},taskRef:str},['boardId','expectedRevision','taskRef'])],
   ['freegma_undo','Undo the latest design or accepted project-color edit. Send expectedRevision and expectedPaletteRevision from the board. Color Undo changes the shared variable without rewriting artwork.',schema({boardId:str,expectedRevision:{type:'integer'},expectedPaletteRevision:{type:'integer'}},['boardId','expectedRevision'])],
   ['freegma_redo','Redo the latest undone design or project-color edit. Send expectedRevision and expectedPaletteRevision from the board.',schema({boardId:str,expectedRevision:{type:'integer'},expectedPaletteRevision:{type:'integer'}},['boardId','expectedRevision'])],
-].map(([name,description,inputSchema])=>({name,description,inputSchema,annotations:{readOnlyHint:['freegma_list_comments','freegma_get_colors','freegma_list_workspaces','freegma_list_boards','freegma_get_board','freegma_list_components','freegma_export_react','freegma_export_file'].includes(name),destructiveHint:false,openWorldHint:false}}));
+].map(([name,description,inputSchema])=>({name,description,inputSchema,annotations:{readOnlyHint:['freegma_deletion_preview','freegma_list_comments','freegma_get_colors','freegma_list_workspaces','freegma_list_boards','freegma_get_board','freegma_list_components','freegma_export_react','freegma_export_file'].includes(name),destructiveHint:name==='freegma_delete_design',openWorldHint:false}}));
 export function callTool(store,name,a={}){
   const def=toolDefinitions.find(t=>t.name===name);if(!def)throw new Error('Unknown tool: '+name);
   if(!a||typeof a!=='object'||Array.isArray(a)||Object.keys(a).some(k=>!Object.hasOwn(def.inputSchema.properties,k)))throw new Error('Invalid tool arguments.');
@@ -33,6 +35,8 @@ export function callTool(store,name,a={}){
   for(const [key,value] of Object.entries(a)){const spec=def.inputSchema.properties[key];if(spec.type==='string'&&typeof value!=='string'||spec.type==='integer'&&!Number.isSafeInteger(value)||spec.type==='number'&&!Number.isFinite(value)||spec.type==='array'&&!Array.isArray(value)||spec.type==='object'&&(!value||typeof value!=='object'||Array.isArray(value))||spec.enum&&!spec.enum.includes(value))throw new Error('Invalid argument: '+key);}
   const origin=process.env.FREEGMA_ORIGIN||'http://127.0.0.1:4330',link=b=>({...b,url:`${origin}/w/${b.workspaceId}/b/${b.id}`});
   switch(name){
+    case 'freegma_deletion_preview':return store.deletionPreview(a.kind,a.id);
+    case 'freegma_delete_design':return store.deleteDesign(a.kind,a.id,a);
     case 'freegma_list_comments':return store.listComments(a,origin);
     case 'freegma_comment':return link(store.comment(a.boardId,a.expectedCommentsRevision,a.actor,a.operation));
     case 'freegma_get_colors':return store.colors(a.workspaceId);

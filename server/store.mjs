@@ -10,6 +10,7 @@ import {cssOperations,cssForDocument,parseLayerCss} from '../shared/css.mjs';
 import {commentStoreMethods} from './comments-store.mjs';
 import {detachMissingCommentAnchors} from '../shared/comments.mjs';
 import {colorStoreMethods} from './colors-store.mjs';
+import {deletionStoreMethods} from './deletion-store.mjs';
 import {resolveDocument,newColorSystem,themeColors,materializeSchematics,colorHistoryState} from '../shared/colors.mjs';
 export const defaultDatabase=path.join(runtimeRoot,'freegma.sqlite');
 const error=(message,status=400)=>Object.assign(new Error(message),{status});
@@ -25,7 +26,8 @@ export class FreegmaStore {
       if(this.db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='boards'").get())this.migrateLegacy();
       this.transaction(()=>this.reindex());
       for(const name of ['workspaces','workspace','createWorkspace','renameWorkspace','setWorkspaceParent','boards','getBoard','createBoard','history','components','component','asset','addAsset','export','exportFree','importFree','insertColorSchematic']){const method=this[name].bind(this);this[name]=(...args)=>this.transaction(()=>method(...args));}
-      if(seed&&!this.workspaces().length){const ws=this.createWorkspace('Design studio'),b=this.createBoard(ws.id,'Dashboard exploration',starterDocument()),root=b.document.nodes.find(n=>n.name==='Primary button');this.saveComponent(b.id,b.revision,root.id,'Primary button','component');}
+      if(seed&&!this.workspaces().length&&!this.db.prepare("SELECT value FROM settings WHERE key='initialized'").get()){const ws=this.createWorkspace('Design studio'),b=this.createBoard(ws.id,'Dashboard exploration',starterDocument()),root=b.document.nodes.find(n=>n.name==='Primary button');this.saveComponent(b.id,b.revision,root.id,'Primary button','component');}
+      if(seed)this.db.prepare("INSERT OR REPLACE INTO settings VALUES('initialized','1')").run();
     }catch(e){this.db.close();throw e;}
   }
   close(){this.db.close();if(this.temporaryRoot)fs.rmSync(this.temporaryRoot,{recursive:true,force:true});}
@@ -152,4 +154,4 @@ export class FreegmaStore {
     return {workspace:this.workspace(workspaceId),boards:bundle.boards.map(b=>this.getBoard(b.id)),children,ids:Object.fromEntries(remap)};
   }
 }
-Object.assign(FreegmaStore.prototype,colorStoreMethods,commentStoreMethods);
+Object.assign(FreegmaStore.prototype,colorStoreMethods,commentStoreMethods,deletionStoreMethods);
