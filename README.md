@@ -60,6 +60,8 @@ Pin comments or drag a region. Reply, react, resolve, search, filter and copy th
 
 Animations show the actual editor working with its own studio designs. Generated React is a visual scaffold; implementation adds behavior and application data.
 
+Undo design edits with **Ctrl+Z** (or **Cmd+Z** on macOS), including property fields and color edits. Redo with **Ctrl+Shift+Z** or **Ctrl+Y**. Text, CSS and comment editors keep their normal text Undo.
+
 ## Editable examples
 
 [**Freegma-Studio.free**](examples/Freegma-Studio.free) includes **22 native design boards**, Light Mode and Dark Mode, palettes, components and templates. Import it from the workspace menu or run:
