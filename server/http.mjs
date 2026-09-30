@@ -41,6 +41,7 @@ export function createServer({store=new FreegmaStore(),build=process.env.FREEGMA
       }
       if(route==='/api/files/import' &&req.method==='POST')return json(res,201,store.importFree(body.package,body.workspaceId));
       if(route==='/api/workspaces'&&req.method==='GET')return json(res,200,{workspaces:store.workspaces()});
+      if(route==='/api/projects'&&req.method==='POST')return json(res,201,store.createProject(body.name,body.template));
       if(route==='/api/workspaces'&&req.method==='POST')return json(res,201,store.createWorkspace(body.name,body.parentId));
       const deletion=route.match(/^\/api\/(boards|workspaces)\/([\w-]+)\/deletion$/);
       if(deletion&&req.method==='GET')return json(res,200,store.deletionPreview(deletion[1]==='boards'?'board':'workspace',deletion[2]));

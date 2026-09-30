@@ -1,5 +1,7 @@
 # Freegma editor guide
 
+Start with [the simple folders, shared components and themes guide](projects-and-themes.md), also available through **Guide** in the editor header. New project offers Empty or a shared Light/Dark starter.
+
 ## Files, folders and portability
 
 ```text
@@ -38,7 +40,7 @@ Auto-layout padding has a four-sided diagram, paired horizontal/vertical fields 
 
 ## MCP
 
-The stdio server is `freegma/server/mcp.mjs`. It uses the same file store and reference index as the browser. It exposes 24 tools for workspaces, boards, edits, components, images, React/CSS, portable files, project colors, comments, task references and undo/redo. `freegma://board/<id>` resources expose complete editable documents.
+The stdio server is `freegma/server/mcp.mjs`. It uses the same file store and reference index as the browser. It exposes 27 tools for workspaces, boards, edits, components, images, React/CSS, portable files, project colors, comments, task references and undo/redo. `freegma://board/<id>` resources expose complete editable documents.
 
 Register using your Node 24 executable and absolute paths:
 
@@ -56,7 +58,7 @@ Read `freegma_get_board` first, then supply its current `revision` as `expectedR
 ]}
 ```
 
-The browser observes agent edits automatically. On a revision conflict, read the latest board and reconcile before retrying. Image import accepts base64 bytes up to 8 MB and validates MIME signatures. Assets and components are scoped to their workspace.
+The browser observes agent edits automatically. On a revision conflict, read the latest board and reconcile before retrying. Image import accepts base64 bytes up to 8 MB and validates MIME signatures. Assets and components are scoped to their workspace and inherited from parents; sibling-local extras remain separate.
 
 ## Architecture and validation
 

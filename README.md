@@ -64,6 +64,8 @@ Undo design edits with **Ctrl+Z** (or **Cmd+Z** on macOS), including property fi
 
 ## Editable examples
 
+Open **Guide** in the editor for a short folders/components/color-themes walkthrough with an interactive example. **Workspace menu → New project** offers Empty or a Light & Dark template: one shared Button/Card library, example boards, both palettes and optional theme folders. Parent components are available in children; theme-only extras stay local. See [projects and themes](docs/projects-and-themes.md).
+
 [**Freegma-Studio.free**](examples/Freegma-Studio.free) includes **22 native design boards**, Light Mode and Dark Mode, palettes, components and templates. Import it from the workspace menu or run:
 
 ```sh
@@ -100,7 +102,7 @@ Use `yarn mcp` or configure your agent with an absolute Node executable and `ser
 {"mcpServers":{"freegma":{"command":"/absolute/path/to/node","args":["/absolute/path/to/freegma/server/mcp.mjs"]}}}
 ```
 
-There are **26 tools** for workspaces, boards, deletion previews, operations, components, images, CSS/React, portable files, colors, comments, task references and Undo/Redo. Read current revisions before editing. Logs use stderr; stdout remains JSON-RPC.
+There are **27 tools** for projects, workspaces, boards, deletion previews, operations, components, images, CSS/React, portable files, colors, comments, task references and Undo/Redo. Use `freegma_create_project` with `template: "empty"` or `"light-dark"`. Read current revisions before editing. Logs use stderr; stdout remains JSON-RPC.
 
 Delete a board from its **⋯** menu in the Boards list. To delete a project/workspace, open the workspace dropdown and choose **Delete workspace…**. The confirmation shows the scope and requires the exact name. Deleting a parent includes its children; deleting a board keeps shared library components and assets. Changed designs invalidate old confirmations.
 
