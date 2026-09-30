@@ -52,6 +52,14 @@ export class DesignFiles {
     }else{this.cache.delete(relative);this.cache.set(relative,entry);}
     return copy?structuredClone(entry.value):entry.value;
   }
+  summary(relative,validate,project){
+    this.summaries??=new Map();
+    if(this.pending?.has(relative))return project(this.validated(relative,validate,false));
+    const stat=fs.statSync(this.resolve(relative),{bigint:true}),signature=[stat.mtimeNs,stat.ctimeNs,stat.size,stat.ino].join(':');
+    let entry=this.summaries.get(relative);
+    if(!entry||entry.signature!==signature){entry={signature,value:project(this.validated(relative,validate,false))};this.summaries.set(relative,entry);if(this.summaries.size>4096)this.summaries.delete(this.summaries.keys().next().value);}
+    return structuredClone(entry.value);
+  }
   stage(relative,value){this.resolve(relative);if(!this.pending)throw Error('File writes require a storage transaction.');this.pending.set(relative,Buffer.isBuffer(value)?value:Buffer.from(JSON.stringify(value,null,2)+'\n'));}
   remove(relative){this.resolve(relative);if(!this.pending)throw Error('File deletion requires a storage transaction.');this.pending.set(relative,null);}
   publish(entry){if(entry.base64===null){fs.rmSync(this.resolve(entry.file),{force:true});}else this.atomic(entry.file,Buffer.from(entry.base64,'base64'));const cached=this.cache.get(entry.file);if(cached){this.cacheBytes-=cached.bytes;this.cache.delete(entry.file);}}

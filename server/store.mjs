@@ -20,6 +20,8 @@ export const defaultDatabase=path.join(runtimeRoot,'freegma.sqlite');
 const error=(message,status=400)=>Object.assign(new Error(message),{status});
 const title=value=>{if(typeof value!=='string'||!value.trim()||value.length>200)throw error('Name must contain 1–200 characters.');return value.trim();};
 const now=()=>new Date().toISOString();
+const boardMeta=b=>({id:b.id,workspaceId:b.workspaceId,name:b.name,revision:b.revision,taskRef:b.taskRef,updatedAt:b.updatedAt});
+const workspaceMeta=w=>({id:w.id,name:w.name,parentId:w.parentId||null,createdAt:w.createdAt,boards:w.boards});
 export class FreegmaStore {
   constructor(filename=process.env.FREEGMA_DB||defaultDatabase,{seed=true,storageRoot}={}){
     if(filename!==':memory:')fs.mkdirSync(path.dirname(filename),{recursive:true});
@@ -29,7 +31,7 @@ export class FreegmaStore {
     try{
       if(this.db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='boards'").get())this.migrateLegacy();
       this.transaction(()=>this.reindex());
-      for(const name of ['workspaces','workspace','createWorkspace','renameWorkspace','setWorkspaceParent','boards','getBoard','createBoard','history','components','component','asset','addAsset','export','exportFree','importFree','insertColorSchematic']){const method=this[name].bind(this);this[name]=(...args)=>this.transaction(()=>method(...args));}
+      for(const name of ['workspaces','workspace','createWorkspace','renameWorkspace','setWorkspaceParent','boards','getBoard','boardStatus','createBoard','history','components','component','asset','addAsset','export','exportFree','importFree','insertColorSchematic']){const method=this[name].bind(this);this[name]=(...args)=>this.transaction(()=>method(...args));}
       if(seed&&!this.workspaces().length&&!this.db.prepare("SELECT value FROM settings WHERE key='initialized'").get()){const ws=this.createWorkspace('Design studio'),b=this.createBoard(ws.id,'Dashboard exploration',starterDocument()),root=b.document.nodes.find(n=>n.name==='Primary button');this.saveComponent(b.id,b.revision,root.id,'Primary button','component');}
       if(seed)this.db.prepare("INSERT OR REPLACE INTO settings VALUES('initialized','1')").run();
     }catch(e){this.db.close();throw e;}
@@ -44,14 +46,14 @@ export class FreegmaStore {
   }
   ref(kind,id){identifier(id);const ref=this.db.prepare('SELECT * FROM file_refs WHERE kind=? AND id=?').get(kind,id);if(!ref)throw error(kind==='asset'?'Image not found.':kind[0].toUpperCase()+kind.slice(1)+' not found.',404);return ref;}
   register(kind,id,workspaceId,file){identifier(id);identifier(workspaceId);this.files.resolve(file);this.db.prepare('INSERT INTO file_refs VALUES(?,?,?,?) ON CONFLICT(kind,id) DO UPDATE SET workspace_id=excluded.workspace_id,path=excluded.path').run(kind,id,workspaceId,file);}
-  manifest(id){return this.files.validated(this.ref('workspace',id).path,validateWorkspace);}
+  manifest(id,copy=true){return this.files.validated(this.ref('workspace',id).path,validateWorkspace,copy);}
   stageManifest(w){validateWorkspace(w);this.files.stage(workspacePath(w.id),w);this.register('workspace',w.id,w.id,workspacePath(w.id));for(const c of w.components)this.register('component',c.id,w.id,workspacePath(w.id));for(const a of w.assets)this.register('asset',a.id,w.id,w.id+'/'+a.path);}
   readBoard(id,copy=true){const ref=this.ref('board',id),b=this.files.validated(ref.path,validateBoard,copy);if(b.id!==id||b.workspaceId!==ref.workspace_id)throw error('Board file identity mismatch.',500);return b;}
   reindex(){
     this.db.exec('DELETE FROM file_refs');
     for(const entry of fs.readdirSync(this.files.root,{withFileTypes:true})){if(!entry.isDirectory()||!/^workspace_[\w-]+$/.test(entry.name))continue;const file=workspacePath(entry.name);if(!fs.existsSync(this.files.resolve(file)))continue;const w=validateWorkspace(this.files.json(file));if(w.id!==entry.name)throw error('Workspace folder identity mismatch.',500);
       const add=(kind,id,file)=>{if(this.db.prepare('SELECT id FROM file_refs WHERE kind=? AND id=?').get(kind,id))throw error('Duplicate stored '+kind+' ID.',500);this.register(kind,id,w.id,file);};
-      add('workspace',w.id,file);for(const b of w.boards){if(b.path!==`b/${b.id}.free`)throw error('Invalid board reference.',500);const actual=validateBoard(this.files.json(boardPath(w.id,b.id)));if(actual.id!==b.id||actual.workspaceId!==w.id)throw error('Invalid board file identity.',500);add('board',b.id,boardPath(w.id,b.id));}
+      add('workspace',w.id,file);for(const b of w.boards){if(b.path!==`b/${b.id}.free`)throw error('Invalid board reference.',500);const actual=this.files.summary(boardPath(w.id,b.id),validateBoard,boardMeta);if(actual.id!==b.id||actual.workspaceId!==w.id)throw error('Invalid board file identity.',500);add('board',b.id,boardPath(w.id,b.id));}
       for(const c of w.components)add('component',c.id,file);for(const a of w.assets){if(!fs.existsSync(this.files.resolve(w.id+'/'+a.path)))throw error('Missing workspace asset: '+a.id,500);add('asset',a.id,w.id+'/'+a.path);}
     }
     for(const workspace of this.workspaces())this.checkWorkspaceParent(workspace.id,workspace.parentId);
@@ -72,7 +74,7 @@ export class FreegmaStore {
       this.db.exec('DROP TABLE history; DROP TABLE boards; DROP TABLE components; DROP TABLE assets; DROP TABLE workspaces;');this.db.prepare("INSERT OR REPLACE INTO settings VALUES('schema','2')").run();
     });this.db.exec('VACUUM');
   }
-  workspaces(){return this.db.prepare("SELECT id FROM file_refs WHERE kind='workspace' ORDER BY rowid").all().map(r=>{const w=this.manifest(r.id);return {id:w.id,name:w.name,parentId:w.parentId||null,createdAt:w.createdAt,filePath:this.files.resolve(workspacePath(w.id))};});}
+  workspaces(){return this.db.prepare("SELECT id,path FROM file_refs WHERE kind='workspace' ORDER BY rowid").all().map(r=>{const {boards,...w}=this.files.summary(r.path,validateWorkspace,workspaceMeta);return {...w,filePath:this.files.resolve(r.path)};});}
   workspace(id){const w=this.manifest(id);return {id:w.id,name:w.name,parentId:w.parentId||null,createdAt:w.createdAt,filePath:this.files.resolve(workspacePath(w.id))};}
   createWorkspace(name,parentId=null){this.checkWorkspaceParent(null,parentId);const w={parentId,...(!parentId?{colorSystem:newColorSystem()}:{}),format:'freegma-workspace',formatVersion:1,id:newId('workspace'),name:title(name),createdAt:now(),boards:[],components:[],assets:[]};this.stageManifest(w);return this.workspace(w.id);}
   checkWorkspaceParent(id,parentId){
@@ -81,7 +83,8 @@ export class FreegmaStore {
   }
   setWorkspaceParent(id,parentId=null){const w=this.manifest(id);this.checkWorkspaceParent(id,parentId);w.parentId=parentId;this.stageManifest(w);for(const child of this.workspaces())this.checkWorkspaceParent(child.id,child.parentId);return this.workspace(id);}
   renameWorkspace(id,name){const w=this.manifest(id);w.name=title(name);this.stageManifest(w);return this.workspace(id);}
-  boards(workspaceId){return this.manifest(workspaceId).boards.map(r=>{const b=this.getBoard(r.id);return {id:b.id,workspaceId:b.workspaceId,name:b.name,revision:b.revision,taskRef:b.taskRef,updatedAt:b.updatedAt,filePath:b.filePath};});}
+  boards(workspaceId){const ref=this.ref('workspace',workspaceId),w=this.files.summary(ref.path,validateWorkspace,workspaceMeta);return w.boards.map(r=>{const ref=this.ref('board',r.id),b=this.files.summary(ref.path,validateBoard,boardMeta);if(b.workspaceId!==workspaceId)throw error('Board file identity mismatch.',500);return {...b,filePath:this.files.resolve(ref.path)};});}
+  boardStatus(id){const b=this.readBoard(id,false),palette=this.colors(b.workspaceId);return {id:b.id,revision:b.revision,commentsRevision:b.commentsRevision||0,paletteRevision:palette.revision,themeId:palette.themeId,ownerId:palette.ownerId};}
   getBoard(id){const b=this.readBoard(id,false),palette=this.colors(b.workspaceId),state={designCanUndo:b.cursor>0,designCanRedo:b.history.some(h=>h.seq===b.cursor+1),designUndoAt:b.history.find(h=>h.seq===b.cursor)?.createdAt,designRedoAt:b.history.find(h=>h.seq===b.cursor+1)?.undoneAt};return {id:b.id,workspaceId:b.workspaceId,name:b.name,revision:b.revision,taskRef:b.taskRef,updatedAt:b.updatedAt,document:clone(b.document),comments:clone(b.comments||[]),commentsRevision:b.commentsRevision||0,palette,...state,...colorHistoryState(state,palette),filePath:this.files.resolve(boardPath(b.workspaceId,b.id))};}
   createBoard(workspaceId,name,document={version:1,nodes:[]}){const w=this.manifest(workspaceId);validateDocument(document);this.validateAssets(document,workspaceId);const id=newId('board'),b={format:'freegma-board',formatVersion:1,id,workspaceId,name:title(name),document,revision:1,cursor:0,taskRef:'',updatedAt:now(),history:[],comments:[],commentsRevision:0};this.files.stage(boardPath(workspaceId,id),b);this.register('board',id,workspaceId,boardPath(workspaceId,id));w.boards.push({id,path:`b/${id}.free`});this.stageManifest(w);return this.getBoard(id);}
   expect(board,revision){if(!Number.isSafeInteger(revision))throw error('Supply the board expectedRevision.');if(board.revision!==revision)throw error('This board changed elsewhere. Reload before editing.',409);}
@@ -93,8 +96,8 @@ export class FreegmaStore {
   meta(id,revision,{name,taskRef}){return this.transaction(()=>{const b=this.readBoard(id);this.expect(b,revision);if(taskRef!=null&&(typeof taskRef!=='string'||taskRef.length>500))throw error('Invalid task reference.');Object.assign(b,{name:name==null?b.name:title(name),taskRef:taskRef??b.taskRef,revision:b.revision+1,updatedAt:now()});this.files.stage(boardPath(b.workspaceId,id),b);return this.getBoard(id);});}
   travel(id,revision,direction,expectedPaletteRevision){return this.transaction(()=>{const publicBoard=this.getBoard(id);this.expect(publicBoard,revision);if(!['undo','redo'].includes(direction)||!publicBoard[direction==='undo'?'canUndo':'canRedo'])throw error(`Nothing to ${direction}.`,409);if(publicBoard[direction+'Kind']==='color'){this.travelColors(publicBoard.workspaceId,expectedPaletteRevision,direction);return this.getBoard(id);}const b=this.readBoard(id),seq=direction==='undo'?b.cursor:b.cursor+1,h=b.history.find(h=>h.seq===seq);if(!h)throw error(`Nothing to ${direction}.`,409);const doc=direction==='undo'?h.before:h.after;this.validateAssets(doc,b.workspaceId);detachMissingCommentAnchors(b,doc);if(direction==='undo')h.undoneAt=now();Object.assign(b,{document:doc,cursor:direction==='undo'?seq-1:seq,revision:b.revision+1,updatedAt:now()});this.files.stage(boardPath(b.workspaceId,id),b);this.syncMasters(b,{updateHistory:false,previousDocument:publicBoard.document});return this.getBoard(id);});}
   history(id){const b=this.readBoard(id,false),p=this.colors(b.workspaceId);return [...b.history.map(({seq,label,createdAt})=>({seq,label,createdAt,kind:'design'})),...(p.colorHistory?.entries||[]).map(e=>({seq:e.id,label:'Change project color '+(p.schematic.find(r=>r.key===e.key)?.name||e.key),createdAt:e.createdAt,kind:'color'}))].sort((a,b)=>b.createdAt.localeCompare(a.createdAt)).slice(0,30);}
-  workspaceAncestors(workspaceId){const result=[],seen=new Set();for(let w=this.manifest(workspaceId);w;w=w.parentId?this.manifest(w.parentId):null){if(seen.has(w.id))throw error('Workspace parenting would create a cycle.');seen.add(w.id);result.push(w);}return result;}
-  components(workspaceId){return this.workspaceAncestors(workspaceId).flatMap(w=>w.components.map(({id,name,kind,updatedAt})=>({id,name,kind,updatedAt,workspaceId:w.id,ownerName:w.name,inherited:w.id!==workspaceId}))).sort((a,b)=>a.kind.localeCompare(b.kind)||a.name.localeCompare(b.name));}
+  workspaceAncestors(workspaceId,copy=true){const result=[],seen=new Set();for(let w=this.manifest(workspaceId,copy);w;w=w.parentId?this.manifest(w.parentId,copy):null){if(seen.has(w.id))throw error('Workspace parenting would create a cycle.');seen.add(w.id);result.push(w);}return result;}
+  components(workspaceId){return this.workspaceAncestors(workspaceId,false).flatMap(w=>w.components.map(({id,name,kind,updatedAt})=>({id,name,kind,updatedAt,workspaceId:w.id,ownerName:w.name,inherited:w.id!==workspaceId}))).sort((a,b)=>a.kind.localeCompare(b.kind)||a.name.localeCompare(b.name));}
   component(id){const ref=this.ref('component',id),c=this.manifest(ref.workspace_id).components.find(c=>c.id===id);if(!c)throw error('Component not found.',404);return {...c,workspace_id:ref.workspace_id};}
   saveComponent(boardId,revision,nodeId,name,kind='component',componentId=null){return this.transaction(()=>{
     const board=this.getBoard(boardId);this.expect(board,revision);if(!['component','template'].includes(kind))throw error('Invalid library kind.');

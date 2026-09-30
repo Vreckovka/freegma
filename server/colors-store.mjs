@@ -7,8 +7,8 @@ const name=v=>{if(typeof v!=='string'||!v.trim()||v.length>100)throw error('Use 
 const keyFor=value=>{let h=2166136261;for(const c of value.toLowerCase())h=Math.imul(h^c.charCodeAt(0),16777619);return 'color_'+(h>>>0).toString(16);};
 const semantic={canvas:'background',panel:'surface',field:'field',text:'text',muted:'muted',border:'border',accent:'accent',active:'active',onAccent:'on_accent',code:'code',codeText:'code_text'};
 export const colorStoreMethods={
-  colorOwner(workspaceId){let w=this.manifest(workspaceId),theme=w.colorTheme;while(!w.colorSystem&&w.parentId){w=this.manifest(w.parentId);theme??=w.colorTheme;}return {w,theme};},
-  colors(workspaceId){return this.transaction(()=>{let {w,theme}=this.colorOwner(workspaceId);if(!w.colorSystem){w.colorSystem=newColorSystem();this.stageManifest(w);}const p=w.colorSystem;return {...clone(p),ownerId:w.id,workspaceId,themeId:p.themes.some(t=>t.id===theme)?theme:p.defaultTheme};});},
+  colorOwner(workspaceId,copy=true){let w=this.manifest(workspaceId,copy),theme=w.colorTheme;while(!w.colorSystem&&w.parentId){w=this.manifest(w.parentId,copy);theme??=w.colorTheme;}return {w,theme};},
+  colors(workspaceId){return this.transaction(()=>{let {w,theme}=this.colorOwner(workspaceId,false);if(!w.colorSystem){w=clone(w);w.colorSystem=newColorSystem();this.stageManifest(w);}const p=w.colorSystem;return {...clone(p),ownerId:w.id,workspaceId,themeId:p.themes.some(t=>t.id===theme)?theme:p.defaultTheme};});},
   updateColors(workspaceId,expectedRevision,operation){return this.transaction(()=>{
     const context=this.colors(workspaceId),w=this.manifest(context.ownerId),p=w.colorSystem,op=operation;
     if(!Number.isSafeInteger(expectedRevision)||p.revision!==expectedRevision)throw error('Project colors changed elsewhere. Reload before editing.',409);

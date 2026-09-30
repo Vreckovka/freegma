@@ -114,6 +114,8 @@ For a smaller hands-on tutorial, import [**Freegma-Feature-Tour.free**](examples
 
 The screenshot sources and captions for the README are in `docs/media/source/` and `docs/media/demos.json`. Optional documentation tooling: install Pillow in your Python environment, then run `python scripts/build-readme-media.py` to rebuild the GIFs. This is independent of `yarn build` and `yarn start`.
 
+Project navigation reads lightweight workspace and board names, then loads the selected board. Assets loads the component library when opened. The canvas mounts visible frames with a nearby buffer; offscreen designs remain saved and appear as you pan. External edits use small revision checks and reload the active board only when it changes.
+
 ## Files belong to you
 
 ```text
