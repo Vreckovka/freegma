@@ -26,10 +26,10 @@ test('portable example imports all studio boards and libraries without external 
  try{
   const imported=store.importFree(example),workspaces=store.workspaces();
   assert.equal(workspaces.length,3);
-  assert.equal(imported.boards.length,0); // The parent folder owns the palette; child workspaces own boards.
+  assert.equal(imported.boards.length,1); // Parent owns the palette and real shared control masters.
   const children=workspaces.filter(w=>w.parentId===imported.workspace.id);
   assert.deepEqual(children.map(w=>w.name).sort(),['Dark Mode','Light Mode']);
   assert.equal(children.reduce((count,w)=>count+store.boards(w.id).length,0),22);
-  for(const child of children){assert.equal(store.boards(child.id).length,11);assert.equal(store.components(child.id).length,7);assert.equal(store.colors(child.id).ownerId,imported.workspace.id);}
+  for(const child of children){assert.equal(store.boards(child.id).length,11);assert.ok(store.components(child.id).some(c=>c.inherited));assert.ok(store.getBoard(store.boards(child.id)[0].id).document.nodes.some(n=>n.componentId));assert.equal(store.colors(child.id).ownerId,imported.workspace.id);}
  }finally{store.close();}
 });

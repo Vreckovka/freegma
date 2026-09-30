@@ -21,7 +21,7 @@ My project
 
 The library belongs to a workspace; it does not need a Components subfolder. Parent components appear in the **Assets** tab of every child, labeled “Shared from My project”. Child components stay in that child and its descendants. A Dark Mode glow effect is a good child-only extra; the same Button in different colors is a shared component.
 
-Open **Shared components**, edit a master, then **Update component** to publish it. Its instances update across the project’s boards and child folders. Instance overrides are preserved. Update a shared master from its owning project; use Save component in a child to create a separate theme-specific extra.
+Open **Shared components**, edit a master. Every saved edit publishes automatically. Its instances update across the project’s boards and child folders. Instance overrides are preserved. Update a shared master from its owning project; use Save component in a child to create a separate theme-specific extra.
 
 ## One schematic, several palettes
 
@@ -49,7 +49,7 @@ Color picker dragging previews the open design. Closing it, saving or changing w
 1. Create “My product” with the Light & Dark template.
 2. Open **Example dashboard**. Its Card and Button are instances from the shared parent library.
 3. Select **Colors → Light Mode**, then **Dark Mode**. Geometry and components stay the same; role-linked colors change. The local pink dot stays pink.
-4. Open **Shared components**, change the Card radius, then Update component. The example Card and any child instances update.
+4. Open **Shared components**, change the Card radius. The example Card and any child instances update.
 5. Open Dark Mode, create a board and save a glow or other theme-only component there. Light Mode keeps the common parent library without that extra.
 
 Use **New workspace** to add a child to an existing folder. Use **New parent folder** and **Move workspace to folder** to organize existing workspaces. A workspace’s own existing palette takes precedence over inherited colors; moving an old independent project does not silently replace its colors or library.
@@ -59,3 +59,11 @@ Use **New workspace** to add a child to an existing folder. Use **New parent fol
 **Copy link** points to an exact workspace and board. Renaming preserves the link. Export the **parent workspace .free** to include shared definitions, assets and all child folders. Exporting a child or one board separately includes snapshots of inherited definitions and colors so the file can travel alone. Importing that standalone file creates an independent library; import the whole parent when you want to retain shared parent/child relationships.
 
 Files stay under `data/workspaces/workspace_ID/`, with `workspace_ID.free`, `b/board_ID.free` and `Assets/`. SQLite holds only file references. For a manual filesystem move, stop the server/MCP editors and copy every project/child directory together. Portable export is simpler for migrating a complete hierarchy.
+
+## Find and verify a shared component
+
+Layers show **Master** for a source and **Instance** for a linked use. Selecting a child text/icon also resolves to its enclosing component. The inspector’s **Component reference** shows the name, owner, stable component ID, local overrides and counts of linked uses and boards.
+
+Use **Go to main component** to open and select the source. **Show linked usages** lets you navigate to each instance. Change the master’s padding or radius: all non-overridden uses update automatically. Undo/redo on the master propagates too. Editing an instance’s label creates a local override; master changes preserve it. Detach an instance to make it independent.
+
+The Light & Dark starter has two linked Cards and Buttons in the same example so you can verify one source changes both. Parent Assets are shared by child folders; theme colors resolve where each instance is used. Templates create independent copies; they do not update with their source.

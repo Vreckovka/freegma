@@ -12,6 +12,8 @@ export const projectStoreMethods={
       let board=this.createBoard(w.id,'Example dashboard',exampleDocument());
       board=this.insertComponent(board.id,board.revision,card.component.id,{parentId:'example',x:32,y:160}).board;
       board=this.insertComponent(board.id,board.revision,button.component.id,{parentId:'example',x:32,y:360}).board;
+      board=this.insertComponent(board.id,board.revision,card.component.id,{parentId:'example',x:396,y:160}).board;
+      board=this.insertComponent(board.id,board.revision,button.component.id,{parentId:'example',x:396,y:360}).board;
       this.createBoard(w.id,'Folders & themes guide',guideDocument());
       const children=['Light Mode','Dark Mode'].map((name,i)=>{const child=this.createWorkspace(name,w.id);const manifest=this.manifest(child.id);manifest.colorTheme=i?'theme_dark':'theme_light';this.stageManifest(manifest);return child;});
       return {workspace:this.workspace(w.id),board:this.getBoard(board.id),children};

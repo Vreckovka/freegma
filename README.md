@@ -33,6 +33,13 @@ Freegma runs independently of task dashboards, worker clients and external accou
 
 ## Feature tour
 
+### Trace every shared component
+
+Layers label **Master** and **Instance**. Select an instance or its child to see the owning project, stable component ID and linked usages. **Go to main component** jumps to its source. Saved master edits update uses across boards and theme folders automatically, while local overrides stay yours. The starter template includes two linked Cards and Buttons to try this.
+
+The editable Freegma Studio example now shares its controls and preview cards from a parent library. [Folders, themes and component guide](docs/projects-and-themes.md).
+
+
 ### Live colors, one Undo step
 
 Drag, type HEX/RGB, or use the system picker. The open board previews locally; closing the picker or changing workspace saves one action. Escape cancels. Shared schematic roles and themes inherit through folders, while original local colors remain available.
