@@ -1,7 +1,21 @@
 import {validateReference} from './flows.mjs';
 const fail=message=>{throw Object.assign(new Error(message),{status:400});};
 const identifier=value=>typeof value==='string'&&/^[\w-]{1,100}$/.test(value);
-const fields=new Set(['id','fromFrameId','toFrameId','triggerId','action','title','explanation']);
+export const TRANSITION_EVENTS=Object.freeze([
+ {id:'click',label:'Click',icon:'click'},
+ {id:'hover',label:'Hover',icon:'cursor'},
+ {id:'double-click',label:'Double click',icon:'click'},
+ {id:'key-press',label:'Key press',icon:'keyboard'},
+ {id:'submit',label:'Submit',icon:'send'},
+ {id:'change',label:'Value change',icon:'edit'},
+ {id:'focus',label:'Focus',icon:'eye'},
+ {id:'page-load',label:'Page load',icon:'frame'},
+ {id:'state-change',label:'State change',icon:'state'},
+ {id:'timer',label:'Timer',icon:'clock'}
+].map(Object.freeze));
+// Older files have no event. Infer a display label without rewriting their data.
+export function transitionEvent(edge){return TRANSITION_EVENTS.find(e=>e.id===edge.event)||TRANSITION_EVENTS.find(e=>e.id===(edge.triggerId?'click':'state-change'));}
+const fields=new Set(['id','fromFrameId','toFrameId','triggerId','event','action','title','explanation']);
 export function belongsToFrame(nodes,id,frameId){
  const map=nodes instanceof Map?nodes:new Map(nodes.map(n=>[n.id,n]));let node=map.get(id),depth=0;
  while(node&&depth++<101){if(node.id===frameId)return true;node=map.get(node.parentId);}return false;
@@ -15,6 +29,7 @@ export function validateOverlay(overlay,nodes){
  for(const edge of overlay.edges){
   if(!edge||Object.keys(edge).some(k=>!fields.has(k))||!identifier(edge.id)||ids.has(edge.id))fail('Transition IDs must be unique identifiers.');ids.add(edge.id);
   if(!['straight','if','repeat'].includes(edge.action))fail('Choose a Straight, If or Repeat action.');
+  if(edge.event!==undefined&&!TRANSITION_EVENTS.some(e=>e.id===edge.event))fail('Choose a valid trigger event.');
   if(typeof edge.title!=='string'||!edge.title.trim()||edge.title.length>160||typeof edge.explanation!=='string'||edge.explanation.length>10000)fail('Add a short transition title and a valid description.');
   if(!identifier(edge.fromFrameId)||!identifier(edge.toFrameId)||(map.get(edge.fromFrameId)?.type!=='frame'&&!refs.has(edge.fromFrameId))||(map.get(edge.toFrameId)?.type!=='frame'&&!refs.has(edge.toFrameId)))fail('Choose native or referenced source and target frames on this board.');
   if(edge.fromFrameId===edge.toFrameId&&edge.action!=='repeat')fail('A transition back to the same frame must use Repeat.');

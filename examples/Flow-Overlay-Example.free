@@ -1,7 +1,7 @@
 {
   "format": "freegma-package",
   "formatVersion": 1,
-  "applicationVersion": "0.1.20",
+  "applicationVersion": "0.1.21",
   "kind": "workspace",
   "workspace": {
     "parentId": null,
@@ -676,8 +676,9 @@
               "toFrameId": "overlay_home",
               "triggerId": "node_3cc8bf1512854f40",
               "action": "repeat",
-              "title": "Return home",
-              "explanation": "The Return button belongs to a frame on another board. Hover this arrow to highlight that original element in the linked preview."
+              "title": "Preview home",
+              "explanation": "Hover the highlighted Return button to preview the Home frame. The repeat arrow describes the return path.",
+              "event": "hover"
             }
           ],
           "frames": [
@@ -697,10 +698,10 @@
           ]
         }
       },
-      "revision": 8,
+      "revision": 13,
       "cursor": 0,
       "taskRef": "",
-      "updatedAt": "2026-10-01T19:33:47.751Z",
+      "updatedAt": "2026-10-01T19:49:30.992Z",
       "history": [],
       "comments": [],
       "commentsRevision": 0

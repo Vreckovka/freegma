@@ -183,7 +183,7 @@ The server binds to loopback and checks API origins. Comment identities are loca
 
 ### Flow layer on existing designs
 
-Open any design board → **Flow layer** in the canvas toolbar → **＋ Transition**. Select the existing source frame, its triggering button (or frame state), and the target frame. Set Straight / If / Repeat, a short title, and a longer description.
+Open any design board → **Flow layer** in the canvas toolbar → **＋ Transition**. Select the existing source frame, its triggering button (or frame state), and the target frame. Choose **Trigger event** (Click, Hover, Double click, Key press, Submit, Value change, Focus, Page load, State change or Timer). A small icon and event label appear beside the arrow title and in its hover details. Set Straight / If / Repeat independently, then add a short title and a longer description. For example: **Hover · Preview details** with an If action. These describe the flow; they do not run the interaction on the design. Saving an event change is one Ctrl+Z action and travels in the .free file. Older arrows infer Click when an element is linked, otherwise State change.
 
 Arrows sit over the actual native frames. Hover an arrow or its title: the exact trigger lifts with a blue outline, and a popup offers the description, **Edit**, and **Remove**. Click its title to keep the popup open. Move frames, pan or zoom and the arrows follow. Turn the layer off to keep designing. Each saved edit is one Ctrl+Z action. The board’s `.free` file carries the flow layer; generated React contains only the artwork.
 
