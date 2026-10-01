@@ -1,7 +1,7 @@
 {
   "format": "freegma-package",
   "formatVersion": 1,
-  "applicationVersion": "0.1.23",
+  "applicationVersion": "0.1.24",
   "kind": "workspace",
   "workspace": {
     "parentId": null,

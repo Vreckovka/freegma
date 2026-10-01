@@ -3,3 +3,5 @@
 .flow-step.kind-if,.flow-step.kind-repeat,.flow-step.kind-end{height:170px}.flow-step:not(.kind-frame) .flow-port{top:74px}.flow-thumbnail{height:84px;flex-shrink:0;width:196px;position:relative;overflow:hidden;background:var(--ui-field);border:1px solid var(--border);border-radius:5px;pointer-events:none;display:grid;place-items:center}.flow-thumbnail-world{position:absolute;top:0;left:0;transform-origin:0 0}.flow-thumbnail>small{font-size:10px;color:var(--muted);padding:8px;text-align:center}
 
 .flow-picker .flow-nested{display:flex;flex-direction:row;align-items:center;gap:8px;margin-top:10px;font-size:11px;color:var(--muted)}.flow-picker .flow-nested input{width:14px;height:14px}
+
+.flow-edge-label{background:transparent;border:0;box-shadow:none}.flow-route-actions{border-top:1px solid var(--border);padding-top:12px;margin-bottom:18px;display:flex;flex-direction:column;gap:8px}.flow-main .flow-route-handle{border-color:var(--accent)}.flow-main .flow-route-handle.curve,.flow-main .flow-route-handle.pivot{background:var(--accent);border-color:var(--ui-text)}.flow-main .flow-route-guides line{stroke:var(--accent)}
