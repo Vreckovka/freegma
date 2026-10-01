@@ -1,5 +1,6 @@
 import React,{useState,useEffect,useRef,useCallback} from 'react';
 import {Icon} from './icons.jsx';
+import {subscribeResource} from './status-poll.mjs';
 import {commentPosition} from '../shared/comments.mjs';
 
 const ACTOR_KEY='freegma:commenter',READ_KEY='freegma:commentsRead';
@@ -12,7 +13,7 @@ const initials=name=>(name||'?').trim().split(/\s+/).map(word=>word[0]).slice(0,
 function timeLabel(value){const date=new Date(value),minutes=Math.max(0,Math.floor((Date.now()-date.getTime())/60000));return minutes<1?'Just now':minutes<60?minutes+'m':minutes<1440?Math.floor(minutes/60)+'h':date.toLocaleDateString(undefined,{month:'short',day:'numeric'});}
 function writeCommentURL(board,id){const url=new URL(location.href);url.pathname=`/w/${board.workspaceId}/b/${board.id}`;id?url.searchParams.set('comment',id):url.searchParams.delete('comment');window.history.replaceState({},'',url.pathname+url.search+url.hash);return url.href;}
 
-export function useComments({board,boardRef,workspaceId,api,run,openBoard,canvasRef,viewportRef,setViewport,measuredBounds,copySource,inform,setPropertiesTab}){
+export function useComments({board,boardRef,workspaceId,api,run,openBoard,canvasRef,viewportRef,setViewport,measuredBounds,copySource,inform,setPropertiesTab,panelOpen}){
  const [actor,setActor]=useState(initialActor),[activeId,setActiveId]=useState(null),[draft,setDraft]=useState(null),[placement,setPlacement]=useState(null),[showPins,setShowPins]=useState(true),[pending,setPending]=useState(false),[error,setError]=useState(''),[filter,setFilter]=useState('open'),[query,setQuery]=useState(''),[sort,setSort]=useState('newest'),[onlyYours,setOnlyYours]=useState(false),[currentPage,setCurrentPage]=useState(true),[workspaceThreads,setWorkspaceThreads]=useState([]),[readMarks,setReadMarks]=useState(()=>readSaved(READ_KEY,{})),[undo,setUndo]=useState(null);
  const actionRef=useRef(false),deepFocusRef=useRef(''),contextRef=useRef(board?.id);contextRef.current=board?.id;
  const threads=(board?.comments||[]).filter(thread=>!thread.deleted),active=threads.find(thread=>thread.id===activeId)||null;
@@ -26,7 +27,7 @@ export function useComments({board,boardRef,workspaceId,api,run,openBoard,canvas
 
  useEffect(()=>{const id=new URLSearchParams(location.search).get('comment'),thread=threads.find(thread=>thread.id===id),key=thread&&threadKey(thread,board);if(!thread||deepFocusRef.current===key)return;deepFocusRef.current=key;setActiveId(thread.id);setShowPins(true);setPropertiesTab('comments');requestAnimationFrame(()=>{const point=position(thread),rect=canvasRef.current?.getBoundingClientRect(),v=viewportRef.current;if(rect)setViewport({...v,x:rect.width/2-120-point.x*v.zoom,y:rect.height/2-point.y*v.zoom});});},[board?.id,board?.commentsRevision,activeId]);
 
- useEffect(()=>{if(!workspaceId||currentPage)return;let live=true;const refresh=()=>api(`/api/workspaces/${workspaceId}/comments`).then(result=>{if(live)setWorkspaceThreads(result.threads||[]);}).catch(e=>{if(live)setError(e.message);});refresh();const timer=setInterval(refresh,3000);return()=>{live=false;clearInterval(timer);};},[workspaceId,currentPage,board?.commentsRevision]);
+ useEffect(()=>{if(!workspaceId||currentPage||!panelOpen)return;let live=true;const apply=result=>{if(live)setWorkspaceThreads(result.threads||[]);},failed=e=>{if(live)setError(e.message);};api(`/api/workspaces/${workspaceId}/comments`).then(apply).catch(failed);const stop=subscribeResource(api,`/api/workspaces/${workspaceId}/comments`,{onData:(result,{initial,changed})=>{if(initial||changed)apply(result);},onError:failed});return()=>{live=false;stop();};},[workspaceId,currentPage,panelOpen,board?.commentsRevision]);
  const operation=useCallback(async operation=>{
   if(actionRef.current)return false;actionRef.current=true;setPending(true);setError('');const boardId=boardRef.current?.id;
   try{if(!boardId)throw Error('Choose a board first.');const result=await run(current=>{if(current?.id!==boardId)throw Error('The board changed. Try again.');return api(`/api/boards/${boardId}/comments`,'POST',{expectedCommentsRevision:current.commentsRevision||0,actor,operation});});return contextRef.current===boardId?result:false;}
