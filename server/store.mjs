@@ -16,6 +16,7 @@ import {instanceLockStoreMethods} from './instance-locks-store.mjs';
 import {componentStoreMethods} from './components-store.mjs';
 import {projectStoreMethods} from './projects-store.mjs';
 import {flowStoreMethods} from './flows-store.mjs';
+import {batchStoreMethods} from './batch-store.mjs';
 import {emptyFlow} from '../shared/flows.mjs';
 import {resolveDocument,newColorSystem,themeColors,materializeSchematics,colorHistoryState} from '../shared/colors.mjs';
 export const defaultDatabase=path.join(runtimeRoot,'freegma.sqlite');
@@ -156,4 +157,4 @@ export class FreegmaStore {
     return {workspace:this.workspace(workspaceId),boards:bundle.boards.map(b=>this.getBoard(b.id)),children,ids:Object.fromEntries(remap)};
   }
 }
-Object.assign(FreegmaStore.prototype,colorStoreMethods,commentStoreMethods,deletionStoreMethods,projectStoreMethods,componentStoreMethods,instanceLockStoreMethods,flowStoreMethods);
+Object.assign(FreegmaStore.prototype,colorStoreMethods,commentStoreMethods,deletionStoreMethods,projectStoreMethods,componentStoreMethods,instanceLockStoreMethods,flowStoreMethods,batchStoreMethods);

@@ -83,3 +83,15 @@
 .side-panel-right .panel-resizer{right:auto;left:-3px}
 .panel-resizer:hover,.panel-resizer:focus-visible,.resizing-panels .panel-resizer{background:var(--accent);opacity:.65;outline:0}
 .resizing-panels{cursor:col-resize;user-select:none}.resizing-panels .canvas{pointer-events:none}
+.save-status{display:inline-flex;align-items:center;gap:6px;position:relative;color:var(--muted);font-size:11px;white-space:nowrap;max-width:360px;padding:4px 0}
+.save-status svg{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:2;flex-shrink:0}
+.save-status.working{color:var(--muted)}
+.save-spinner{animation:save-spin 1s linear infinite;stroke-dasharray:32 12}
+.save-check{color:#35b889;animation:save-confirm .25s ease-out;stroke-linecap:round;stroke-linejoin:round}
+.save-status.failed{color:#e7a657;white-space:normal}
+.save-status button{font:inherit;color:inherit;background:transparent;border:1px solid currentColor;border-radius:4px;padding:3px 5px}
+.save-status.working::after{content:'';position:absolute;bottom:0;height:1px;width:25%;background:currentColor;opacity:.45;animation:save-progress 1.4s ease-in-out infinite}
+@keyframes save-spin{to{transform:rotate(360deg)}}
+@keyframes save-confirm{from{opacity:0;transform:scale(.7)}to{opacity:1;transform:scale(1)}}
+@keyframes save-progress{0%,100%{left:0}50%{left:75%}}
+@media(prefers-reduced-motion:reduce){.save-spinner,.save-check,.save-status.working::after{animation:none}}

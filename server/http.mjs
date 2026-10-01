@@ -43,6 +43,8 @@ export function createServer({store=new FreegmaStore(),build=process.env.FREEGMA
       if(route==='/api/flow-workspaces'&&req.method==='POST')return json(res,201,store.createFlowWorkspace(body.name,body.parentId));
       if(route==='/api/flow-reference'&&req.method==='POST')return json(res,200,store.flowReference(body));
       const flowRoute=route.match(/^\/api\/boards\/([\w-]+)\/(flow|flow-overlay|flow-sources|flow-preview)$/);
+      const batchRoute=route.match(/^\/api\/boards\/([\w-]+)\/edit-batches$/);
+      if(batchRoute&&req.method==='POST')return json(res,200,store.mutateBatch(batchRoute[1],body.expectedRevision,body.batchId,body.actions));
       if(flowRoute&&flowRoute[2]==='flow-overlay'&&req.method==='POST')return json(res,200,store.mutateFlowOverlay(flowRoute[1],body.expectedRevision,body.operations,body.label));
       if(flowRoute&&flowRoute[2]==='flow-preview'&&req.method==='GET')return json(res,200,store.flowPreview(flowRoute[1],url.searchParams.get('frameId')));
       if(flowRoute&&flowRoute[2]==='flow'&&req.method==='POST')return json(res,200,store.mutateFlow(flowRoute[1],body.expectedRevision,body.operations,body.label));

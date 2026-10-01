@@ -19,6 +19,7 @@ export function validateBoard(b){
   identifier(b.id);identifier(b.workspaceId);
   if(typeof b.name!=='string'||!b.name.trim()||b.name.length>200||typeof b.taskRef!=='string'||b.taskRef.length>500||!Number.isSafeInteger(b.revision)||b.revision<1||!Number.isSafeInteger(b.cursor)||b.cursor<0||!Array.isArray(b.history)||b.history.length>10000)fail('Invalid board metadata.');
   validateDocument(b.document);validateComments(b.comments,b.commentsRevision);
+  if(b.saveBatches!=null&&(!Array.isArray(b.saveBatches)||b.saveBatches.length>32||b.saveBatches.some(r=>!r||typeof r.id!=='string'||!/^[\w-]{8,100}$/.test(r.id)||typeof r.digest!=='string'||!/^[a-f0-9]{64}$/.test(r.digest)||!Number.isSafeInteger(r.revision)||r.revision<1||r.revision>b.revision)))fail('Invalid save batch receipts.');
   let seq=0;for(const h of b.history){if(h.seq!==++seq||typeof h.label!=='string'||h.label.length>200||typeof h.createdAt!=='string')fail('Invalid board history.');validateDocument(h.before);validateDocument(h.after);}
   if(b.cursor>seq)fail('Invalid history cursor.');return b;
 }

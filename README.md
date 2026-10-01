@@ -84,6 +84,12 @@ Animations are captioned snapshots of real editor edits in an isolated copy of i
 
 Undo design edits with **Ctrl+Z** (or **Cmd+Z** on macOS), including property fields and color edits. Redo with **Ctrl+Shift+Z** or **Ctrl+Y**. Text, CSS and comment editors keep their normal text Undo.
 
+### Keep editing while Freegma saves
+
+Canvas edits appear immediately. Completed moves, property changes and flow edits save in the background after a 500 ms quiet period, with a two-second maximum wait before an available request starts. Each request contains at most 25 completed actions or 1,000 operations; size and unsaved backlog limits prevent unlimited accumulation. Only one request runs at a time. A slow request can extend the wait for the next batch, while editing continues.
+
+The subtle header shows scheduled/saving progress and a check when saved. Newer local edits stay on top of save acknowledgements. Each completed action remains a separate Undo step. Navigation and exports include pending edits. If saving fails or another editor conflicts, your draft remains visible: **Retry** resends the same batch safely, and **Copy unsaved edits** preserves the draft for recovery. Leaving with unsaved changes triggers the browser’s normal confirmation.
+
 ## Editable examples
 
 Open **Guide** in the editor for a short folders/components/color-themes walkthrough with an interactive example. **Workspace menu → New project** offers Empty or a Light & Dark template: one shared Button/Card library, example boards, both palettes and optional theme folders. Parent components are available in children; theme-only extras stay local. See [projects and themes](docs/projects-and-themes.md).
