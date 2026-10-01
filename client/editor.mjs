@@ -5,9 +5,9 @@ export function ancestors(nodes,id){
   return result;
 }
 export function visibleLayers(nodes,collapsed=new Set(),query=''){
-  const children=new Map(),matches=new Set(),search=query.trim().toLowerCase();
+  const children=new Map(),map=new Map(nodes.map(n=>[n.id,n])),matches=new Set(),search=query.trim().toLowerCase();
   for(const n of nodes){const key=n.parentId||null;if(!children.has(key))children.set(key,[]);children.get(key).push(n);}
-  if(search)for(const n of nodes)if(n.name.toLowerCase().includes(search)){matches.add(n.id);for(const parent of ancestors(nodes,n.id))matches.add(parent.id);}
+  if(search)for(const n of nodes)if(n.name.toLowerCase().includes(search)){let current=n;while(current&&!matches.has(current.id)){matches.add(current.id);current=map.get(current.parentId);}}
   const rows=[];
   function visit(parent=null,depth=0){for(const node of children.get(parent)||[]){if(search&&!matches.has(node.id))continue;rows.push({node,depth,hasChildren:children.has(node.id)});if(search||!collapsed.has(node.id))visit(node.id,depth+1);}}
   visit();return rows;
