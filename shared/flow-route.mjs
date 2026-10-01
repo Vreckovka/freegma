@@ -64,7 +64,7 @@ export function overlayPath(from,to,{loop=false,repeat=false,lane=0,route,horizo
  return withPivots({points:[a,b,c,d],label},route);
 }
 
-export function flowStepBounds(step){return {left:step.x,top:step.y,width:240,height:step.kind==='frame'?260:170};}
+export function flowStepBounds(step){const live=step.kind==='frame'&&step.display==='live',symbol=['start','decision','end'].includes(step.kind),size=step.kind==='decision'?64:32;return {left:step.x,top:step.y,width:live?step.width||240:symbol?size:240,height:live?step.height||260:symbol?size:step.kind==='frame'?260:170};}
 export function flowStepPath(from,to,edge){
  const a=flowStepBounds(from),b=flowStepBounds(to),repeat=edge.action==='repeat'||from.id===to.id||b.left<a.left+a.width;
  const route=repeat?edge.route:{from:{side:'right',offset:.5},to:{side:'left',offset:.5},...edge.route};

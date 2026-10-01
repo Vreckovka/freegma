@@ -181,6 +181,17 @@ Embed by iframe in a permitted host. Navigation sends `{type:"freegma:navigate",
 
 The server binds to loopback and checks API origins. Comment identities are local display labels. Public access is opt-in; allowed public origins use the same editable local studio.
 
+### Two flow views, shared editing tools
+
+Use a **Flows workspace** for journeys between dashboards. Enable **Flow layer** on a design board for navigation inside that dashboard. Both support connector dots, Straight / If / Repeat arrows, Start / Decision / End points, trigger events, hover details, movable endpoints and curve handles, and route pivots.
+
+- **Linked frames:** choose **Live frame · locked master** to render the real design at its actual size, or **Context card** for a compact preview with a title and explanation. Existing cards keep their display. Both reference the original frame; edit its content in the source workspace and references refresh. Moving a live frame by its caption changes only its flow placement.
+- **Connector dots:** drag near the same frame's boundary to reposition a dot. Attached arrows follow in one undoable action. Drag onto another frame or its connector to create an arrow. On a design board, outer frames show dots automatically; select a nested frame to reveal its dots.
+- **Drop in space:** a draft line stays visible. Choose an existing target, add a Decision or End, or pick a frame reference. Escape cancels without changing saved history. Adding a point and its arrow is one undoable action.
+- **Arrow editing:** hover for the description and Edit / Remove controls. Pick Click, Hover, State change or another event, and optionally the exact source button. Select the arrow to drag its endpoints, bends or whole route, add/remove diamond pivots, or restore automatic routing.
+
+Flow artwork stays separate from implementation artwork and React export. `.free` files preserve references, connector positions, routes and history. Source designs travel separately from a Flows workspace export.
+
 ### Vercel with local storage
 
 The separate Freegma Vercel project forwards **every request** through a public tunnel to `yarn start` on your computer. The editor, API, SQLite index, `.free` documents, assets and downloads are served by that local process. There is no cloud database copy. Keep the computer, Freegma terminal and tunnel terminal running. Anyone with the public URL can use this shared editor; comment names are display labels.
