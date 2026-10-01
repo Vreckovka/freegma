@@ -1,0 +1,9 @@
+node_modules
+data
+logs
+backups
+showcase-data
+dist
+.env*
+examples
+docs

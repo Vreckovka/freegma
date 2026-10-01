@@ -7,18 +7,18 @@ import {FreegmaStore} from './store.mjs';
 import {VERSION} from '../shared/design.mjs';
 import {callTool} from './tools.mjs';
 import {buildRoot} from './paths.mjs';
+import {publicSettings,requestOrigin} from './public-access.mjs';
 export const defaultBuild=buildRoot;
 export function embedOrigins(value=process.env.FREEGMA_EMBED_ORIGINS||'http://127.0.0.1:4320,http://127.0.0.1:4318,http://localhost:4320'){return value.split(',').filter(Boolean).map(v=>{const u=new URL(v.trim());if(!['http:','https:'].includes(u.protocol)||u.origin!==v.trim())throw Error('Embedding origins must be HTTP(S) origins without paths.');return u.origin;});}
 const json=(res,status,data)=>{res.writeHead(status,{'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store'});res.end(JSON.stringify(data));};
-export function createServer({store=new FreegmaStore(),build=process.env.FREEGMA_BUILD||defaultBuild}={}){
+export function createServer({store=new FreegmaStore(),build=process.env.FREEGMA_BUILD||defaultBuild,access=publicSettings()}={}){
   const downloads=new Map(),parents=embedOrigins();
   const server=http.createServer(async(req,res)=>{
     res.setHeader('X-Content-Type-Options','nosniff');
-    res.setHeader('Content-Security-Policy',"default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' blob: data:; connect-src 'self'; frame-ancestors 'self' "+parents.join(' '));
     try{
-      const host=req.headers.host||'';if(!/^(127\.0\.0\.1|localhost|\[::1\])(:\d+)?$/.test(host))return json(res,403,{error:'Local Freegma host required.'});
-      if(req.headers.origin){const origin=new URL(req.headers.origin);if(origin.host!==host||!['http:','https:'].includes(origin.protocol))return json(res,403,{error:'Cross-origin request rejected.'});}
-      const url=new URL(req.url,'http://'+host),route=url.pathname;
+      const settings=access();
+      res.setHeader('Content-Security-Policy',"default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' blob: data:; connect-src 'self'; frame-ancestors 'self' "+[...new Set([...parents,...settings.embedOrigins||[]])].join(' '));
+      const origin=requestOrigin(req,settings.origins),url=new URL(req.url,origin),route=url.pathname;
       const sourceDownload=route.match(/^\/api\/source-downloads\/([a-f0-9-]+)$/);
       if(sourceDownload&&req.method==='GET'){
         const file=downloads.get(sourceDownload[1]);

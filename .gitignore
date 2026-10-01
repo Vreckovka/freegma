@@ -11,3 +11,4 @@ logs/
 .DS_Store
 backups/
 showcase-data/
+.vercel/

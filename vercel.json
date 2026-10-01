@@ -1,0 +1,6 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "buildCommand": "node scripts/build-vercel.mjs",
+  "installCommand": "echo Proxy deployment uses the local Freegma service",
+  "git": {"deploymentEnabled": false}
+}

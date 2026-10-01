@@ -179,7 +179,20 @@ Defaults need no configuration. Set variables in your shell/service; `.env.examp
 
 Embed by iframe in a permitted host. Navigation sends `{type:"freegma:navigate",path:"/w/…/b/…"}` to the referrer's origin; hosts check sender origin and iframe window. A task reference is plain optional metadata.
 
-The server binds to loopback and checks API origins. Comment identities are local display labels. Remote multi-user hosting requires authentication and persistent storage; a static-only site cannot host this SQLite server.
+The server binds to loopback and checks API origins. Comment identities are local display labels. Public access is opt-in; allowed public origins use the same editable local studio.
+
+### Vercel with local storage
+
+The separate Freegma Vercel project forwards **every request** through a public tunnel to `yarn start` on your computer. The editor, API, SQLite index, `.free` documents, assets and downloads are served by that local process. There is no cloud database copy. Keep the computer, Freegma terminal and tunnel terminal running. Anyone with the public URL can use this shared editor; comment names are display labels.
+
+1. Build and start Freegma locally using `yarn build` and `yarn start`.
+2. Run `cloudflared tunnel --url http://127.0.0.1:4330 --http-host-header 127.0.0.1:4330 --no-autoupdate` in its own terminal.
+3. Set `FREEGMA_PUBLIC_ORIGINS` to the exact public Freegma origin(s), and `FREEGMA_EMBED_ORIGINS` to the dashboard origins allowed to embed it, before starting the local server. Local iframe origins stay available. Alternatively set `FREEGMA_PUBLIC_CONFIG` to an absolute JSON file containing `{"origins":["https://your-freegma.vercel.app"],"embedOrigins":["https://your-dashboard.vercel.app"]}`; changes to this file reload without restarting the editor.
+4. Set `FREEGMA_UPSTREAM` to the HTTPS tunnel origin. `node scripts/build-vercel.mjs` produces only Vercel routing configuration in `.vercel/output/`. Deploy that with `vercel deploy --prebuilt --prod` after linking the separate Freegma project.
+
+The public path `/w/workspace_ID/b/board_ID` is identical to the local path. Integrations choose a local origin on local dashboard hosts and the public Freegma origin on public hosts. Cross-origin saves from unlisted sites remain rejected. If a quick tunnel is restarted, it gets a new URL: rebuild/redeploy the proxy with the new upstream. The stable Vercel URL stays the same.
+
+`data`, `logs`, backups, local environment files and built editor files are excluded from deployment. See [Vercel external rewrites](https://vercel.com/docs/routing/rewrites) and [Build Output routing](https://vercel.com/docs/build-output-api/configuration).
 
 ### Flow layer on existing designs
 
