@@ -10,4 +10,4 @@ export function canSchedule(kind,operations){
  if(kind==='overlay')return operations.every(op=>op.op!=='addFrame'||op.frame?.id)&&operations.every(op=>op.op!=='addSymbol'||op.symbol?.id)&&operations.every(op=>op.op!=='addEdge'||op.edge?.id);
  return false;
 }
-export function applyOptimisticEdit(board,action){const document=action.kind==='design'?applyOperations(board.document,action.operations):action.kind==='flow'?applyFlowOperations(board.document,action.operations):applyOverlayOperations(board.document,action.operations);return {...board,document,designCanUndo:true,canUndo:true,designCanRedo:false,canRedo:false};}
+export function applyOptimisticEdit(board,action){const document=action.kind==='design'?applyOperations(board.document,action.operations):action.kind==='flow'?applyFlowOperations(board.document,action.operations):applyOverlayOperations(board.document,action.operations);return {...board,document,designCanUndo:true,canUndo:true,undoKind:'design',designCanRedo:false,canRedo:false};}

@@ -209,6 +209,14 @@ Embed by iframe in a permitted host. Navigation sends `{type:"freegma:navigate",
 
 The server binds to loopback and checks API origins. Comment identities are local display labels. Public access is opt-in; allowed public origins use the same editable local studio.
 
+### Instant Back and recent editing steps
+
+Recent boards stay in this browser tab's memory for five minutes, with a limit of ten boards / 32 MiB of board documents. Back restores the canvas position, zoom, selection and layer tree. The normal lightweight revision checks refresh an idle board when its design, comments or color scheme changes. Unchanged boards do not download their full document again. Reloading the browser clears this memory cache; your saved `.free` files remain authoritative.
+
+Each board keeps its own background save queue. You can switch boards while completed actions save; a reply for the old board never replaces the new canvas. Pending drafts survive cache eviction until saved. Up to eight boards may have pending edits; failures show **Save paused**, **Retry**, and **Copy unsaved edits** for all affected boards. Closing the tab with pending edits triggers the browser's normal unsaved-work warning.
+
+**Ctrl+Z**, **Ctrl+Shift+Z** and **Ctrl+Y** restore recent completed steps immediately and schedule their persistence with other edits. This cache retains up to twenty steps / 32 MiB per retained board for five minutes. Older steps and project color history use the server's original Undo/Redo path. Unfinished gestures and color previews do not create cached steps. A remote revision or palette change clears obsolete local history. Exports and shared-component/color operations still drain pending saves to keep their result consistent.
+
 ### Two flow views, shared editing tools
 
 Use a **Flows workspace** for journeys between dashboards. Enable **Flow layer** on a design board for navigation inside that dashboard. Both support connector dots, Straight / If / Repeat arrows, Start / Decision / End points, trigger events, hover details, movable endpoints and curve handles, and route pivots.

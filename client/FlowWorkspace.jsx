@@ -15,7 +15,7 @@ import './flows.css';
 import './flow-overlay.css';
 const symbols={frame:'▣',if:'◇',decision:'◇',start:'●',repeat:'↻',end:'◉'};
 
-export function FlowsEditor({board,boards,workspaces,api,busy,onOperations,onOpenBoard,onNewBoard,onDeleteBoard,onExport,onTask,panelProps,onUndo}){
+export function FlowsEditor({board,initialState,onViewState,boards,workspaces,api,busy,onOperations,onOpenBoard,onNewBoard,onDeleteBoard,onExport,onTask,panelProps,onUndo}){
  const [selected,setSelected]=useState(null),[picker,setPicker]=useState(false),[connecting,setConnecting]=useState(null),[view,setView]=useState({x:60,y:90,zoom:1});
  const [drag,setDrag]=useState(null),[error,setError]=useState(''),[routePreview,setRoutePreview]=useState(null),[selectedPivot,setSelectedPivot]=useState(null);
  const [liveSizes,setLiveSizes]=useState({}),[connectorEpoch,setConnectorEpoch]=useState(0),[pendingReference,setPendingReference]=useState(null),[hover,setHover]=useState(null);
@@ -23,7 +23,8 @@ export function FlowsEditor({board,boards,workspaces,api,busy,onOperations,onOpe
  const flow=board?.document.flow||{nodes:[],edges:[]};
  const nodes=useMemo(()=>flow.nodes.map(n=>({...n,...(n.display==='live'?liveSizes[n.id]:{}),...(drag?.id===n.id?{x:drag.x,y:drag.y}:{})})),[flow.nodes,liveSizes,drag]);
  const node=nodes.find(n=>n.id===selected),edge=flow.edges.find(e=>e.id===selected),item=node||edge,active=flow.edges.find(e=>e.id===hover);
- useEffect(()=>{setRoutePreview(null);setSelectedPivot(null);setSelected(null);setConnecting(null);setView({x:60,y:90,zoom:1});setPicker(false);setError('');setHover(null);setLiveSizes({});setPendingReference(null);},[board?.id]);
+ useEffect(()=>{const restored=initialState?.boardId===board?.id?initialState:null;setRoutePreview(null);setSelectedPivot(null);setSelected(restored?.selected||null);setConnecting(null);setView(restored?.view||{x:60,y:90,zoom:1});setPicker(false);setError('');setHover(null);setLiveSizes({});setPendingReference(null);},[board?.id]);
+ useEffect(()=>{onViewState?.({view,selected});},[view,selected,board?.id]);
  useEffect(()=>()=>clearTimeout(leave.current),[]);
  useEffect(()=>{const el=canvas.current;if(!el)return;const prevent=e=>{if(e.ctrlKey||e.metaKey)e.preventDefault();};el.addEventListener('wheel',prevent,{passive:false});return()=>el.removeEventListener('wheel',prevent);},[]);
  async function action(ops,label){setError('');try{return await onOperations(ops,label);}catch(e){setError(e.message);}}
