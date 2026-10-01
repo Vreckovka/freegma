@@ -1,7 +1,8 @@
 import {ICON_PATHS} from './icons.mjs';
+import {validateFlow} from './flows.mjs';
 import {validateBindings,detachPatchedColors,readPath} from './colors.mjs';
 import {validateCssOverrides,mergeCss,clearCssForPatch,cssForDocument} from './css.mjs';
-export const VERSION = "0.1.18";
+export const VERSION = "0.1.19";
 export const TYPES = ["frame", "group", "rectangle", "ellipse", "text", "image", "icon", "vector"];
 export const DEFAULTS = { x:0, y:0, width:240, height:160, rotation:0, fill:"#ffffff", color:"#172033", stroke:"#dfe4ec", strokeWidth:0, radius:0, opacity:1, fontSize:16, fontWeight:400, fontFamily:"Inter, system-ui, sans-serif", lineHeight:1.5, textAlign:"left", layout:"free", gap:16, paddingTop:0, paddingRight:0, paddingBottom:0, paddingLeft:0, marginTop:0, marginRight:0, marginBottom:0, marginLeft:0, align:"start", justify:"start", sizing:"fixed", visible:true, locked:false, clip:false, text:"", src:"", icon:"sparkles" };
 const numeric = new Set(["x","y","width","height","rotation","strokeWidth","radius","opacity","fontSize","fontWeight","lineHeight","gap","paddingTop","paddingRight","paddingBottom","paddingLeft","marginTop","marginRight","marginBottom","marginLeft"]);
@@ -22,6 +23,7 @@ export function makeNode(type="frame", patch={}) {
 function fail(message) { throw Object.assign(new Error(message),{status:400}); }
 export function validateDocument(document) {
   if (!document || !Array.isArray(document.nodes) || document.nodes.length>10000) fail("A design needs a nodes array with at most 10,000 layers.");
+  if(document.flow!=null){validateFlow(document.flow);if(document.nodes.length)fail('Flows keep references separate from design layers.');}
   const ids=new Set();
   for (const node of document.nodes) {
     if (!node || typeof node.id!=="string" || !/^[\w-]{1,100}$/.test(node.id) || ids.has(node.id)) fail("Layer IDs must be unique, nonempty identifiers.");

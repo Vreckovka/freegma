@@ -40,6 +40,12 @@ export function createServer({store=new FreegmaStore(),build=process.env.FREEGMA
         return json(res,201,{url:'/api/source-downloads/'+id});
       }
       if(route==='/api/files/import' &&req.method==='POST')return json(res,201,store.importFree(body.package,body.workspaceId));
+      if(route==='/api/flow-workspaces'&&req.method==='POST')return json(res,201,store.createFlowWorkspace(body.name,body.parentId));
+      if(route==='/api/flow-reference'&&req.method==='POST')return json(res,200,store.flowReference(body));
+      const flowRoute=route.match(/^\/api\/boards\/([\w-]+)\/(flow|flow-sources|flow-preview)$/);
+      if(flowRoute&&flowRoute[2]==='flow-preview'&&req.method==='GET')return json(res,200,store.flowPreview(flowRoute[1],url.searchParams.get('frameId')));
+      if(flowRoute&&flowRoute[2]==='flow'&&req.method==='POST')return json(res,200,store.mutateFlow(flowRoute[1],body.expectedRevision,body.operations,body.label));
+      if(flowRoute&&flowRoute[2]==='flow-sources'&&req.method==='GET')return json(res,200,store.flowSources(flowRoute[1],url.searchParams.get('frameId')));
       if(route==='/api/workspaces'&&req.method==='GET')return json(res,200,{workspaces:store.workspaces()});
       if(route==='/api/projects'&&req.method==='POST')return json(res,201,store.createProject(body.name,body.template));
       if(route==='/api/workspaces'&&req.method==='POST')return json(res,201,store.createWorkspace(body.name,body.parentId));

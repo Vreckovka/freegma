@@ -23,6 +23,7 @@ export function validateBoard(b){
   if(b.cursor>seq)fail('Invalid history cursor.');return b;
 }
 export function validateWorkspace(w){
+  if(w?.type!=null&&!['design','flows'].includes(w.type))fail('Unknown workspace type.');
   if(!w||w.format!=='freegma-workspace'||w.formatVersion!==1)fail('Unsupported .free workspace format.');identifier(w.id);if(!/^workspace_[\w-]+$/.test(w.id))fail('Workspace IDs must start with workspace_.');
   if(typeof w.name!=='string'||!w.name.trim()||w.name.length>200||!Array.isArray(w.boards)||w.boards.length>2000||!Array.isArray(w.components)||w.components.length>2000||!Array.isArray(w.assets)||w.assets.length>2000)fail('Invalid workspace metadata.');
   if(w.parentId!=null){identifier(w.parentId);if(w.parentId===w.id)fail('A workspace cannot parent itself.');}

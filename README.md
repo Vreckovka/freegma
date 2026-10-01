@@ -143,7 +143,21 @@ Use `yarn mcp` or configure your agent with an absolute Node executable and `ser
 {"mcpServers":{"freegma":{"command":"/absolute/path/to/node","args":["/absolute/path/to/freegma/server/mcp.mjs"]}}}
 ```
 
-There are **28 tools** for projects, workspaces, boards, deletion previews, operations, components, images, CSS/React, portable files, colors, comments, task references and Undo/Redo. Use `freegma_create_project` with `template: "empty"` or `"light-dark"`. Read current revisions before editing. Logs use stderr; stdout remains JSON-RPC.
+There are **31 tools** for projects, workspaces, boards, flows, deletion previews, operations, components, images, CSS/React, portable files, colors, comments, task references and Undo/Redo. Use `freegma_create_project` with `template: "empty"` or `"light-dark"`. Read current revisions before editing. Logs use stderr; stdout remains JSON-RPC.
+
+## Flows: designs plus product logic
+
+Choose **Workspace menu → New Flows workspace**. Add a **Frame** by choosing its design workspace, board and frame. Add **If**, **Repeat** and **End** steps, then select a step, choose **Connect**, and click the next step. Output/input ports also create connections.
+
+[Editable feature mockups](examples/Flows-Feature.free) include the canvas, frame picker and transition inspector as three native design frames. Import this `.free` package to browse or edit the feature designs.
+
+Example: `Home → click Buy → Signed in? → Yes → Checkout → Submit → End: Order confirmed`. A No branch can lead to Sign in; a Repeat arrow returns to Home. Select an arrow to choose Straight / If / Repeat, enter a title and explanation, and pick the exact source button in **Trigger element**. Final states have their own explanation and no outgoing arrows.
+
+Drag steps, pan the empty canvas, zoom with Ctrl+scroll, and undo/redo with Ctrl+Z / Ctrl+Shift+Z. **Open frame** selects the original design layer. Existing components, themes and design workspaces stay intact; nothing is automatically converted into a flow.
+
+Flow workspaces use the same stable `/w/workspace_ID/b/board_ID` links, task references, recoverable deletion and portable `.free` files. The manifest has `type: "flows"`; boards store `document.flow` nodes and edges plus undo history. SQLite still indexes file references only. Frame and trigger references store workspace, board, frame and optional element IDs. Original designs export separately: import those source `.free` workspaces too when moving a flow to another system. Missing sources are reported and can be replaced in the inspector; diagrams remain editable.
+
+MCP: `freegma_create_flow_workspace({name})`, `freegma_flow_sources({boardId,frameId?})`, and `freegma_apply_flow({boardId,expectedRevision,operations})`. Operations add/update/remove nodes or edges atomically. Node kinds: frame / if / repeat / end. Edge actions: straight / if / repeat. Frame nodes require a `reference`; arrow `trigger` elements must belong to their source frame. Use the existing board read, Undo/Redo, export/import and task-link tools. Restart an already-running MCP connection after updating Freegma to discover the new tools.
 
 Delete a board from its **⋯** menu in the Boards list. To delete a project/workspace, open the workspace dropdown and choose **Delete workspace…**. The confirmation shows the scope and requires the exact name. Deleting a parent includes its children; deleting a board keeps shared library components and assets. Changed designs invalidate old confirmations.
 

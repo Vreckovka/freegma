@@ -1,6 +1,9 @@
 import {VERSION} from '../shared/design.mjs';
 const str={type:'string'},num={type:'number'},schema=(properties,required=[])=>({type:'object',properties,required,additionalProperties:false});
 export const toolDefinitions=[
+  ['freegma_create_flow_workspace','Create an independent Flows workspace and an empty flow board. References existing designs without changing them.',schema({name:str,parentId:str},['name'])],
+  ['freegma_flow_sources','List frames on one design board; supply frameId to list its elements for click triggers. Load only the selected board.',schema({boardId:str,frameId:str},['boardId'])],
+  ['freegma_apply_flow','Atomically edit a Flows board using expectedRevision. Operations: addNode(node:{id,kind:frame|if|repeat|end,title,explanation,x,y,reference?}), updateNode(id,patch), removeNode(id), addEdge(edge:{id,from,to,action:straight|if|repeat,title,explanation,trigger?}), updateEdge(id,patch), removeEdge(id). reference and trigger: {workspaceId,boardId,frameId,elementId?}. Frame references are required; trigger elements must belong to the source frame. End steps cannot have outgoing transitions; self loops use repeat. Undo/redo and .free export preserve flow history.',schema({boardId:str,expectedRevision:{type:'integer'},operations:{type:'array',items:{type:'object'}},label:str},['boardId','expectedRevision','operations'])],
   ['freegma_create_project','Create an independent project. template: empty (blank board) or light-dark (shared Button/Card library, example and guide boards, Light/Dark palettes and optional theme folders). Components remain shared at the parent.',schema({name:str,template:{type:'string',enum:['empty','light-dark']}},['name'])],
   ['freegma_deletion_preview','Read exact board or workspace deletion scope and a confirmation token. Workspace deletion includes all descendants. Does not delete anything.',schema({kind:{type:'string',enum:['board','workspace']},id:str},['kind','id'])],
   ['freegma_delete_design','Delete a board or a workspace and its descendants after explicit user authorization. Supply exact confirmName and confirmationToken from a fresh deletion preview. Files are retained in local .trash; stale confirmations are rejected.',schema({kind:{type:'string',enum:['board','workspace']},id:str,confirmName:str,confirmationToken:str},['kind','id','confirmName','confirmationToken'])],
@@ -54,6 +57,9 @@ export function callTool(store,name,a={}){
     case 'freegma_get_board':return link(store.getBoard(a.boardId));
     case 'freegma_apply_operations':return link(store.mutate(a.boardId,a.expectedRevision,a.operations,a.label));
     case 'freegma_list_components':return {components:store.components(a.workspaceId)};
+    case 'freegma_create_flow_workspace':return store.createFlowWorkspace(a.name,a.parentId);
+    case 'freegma_flow_sources':return store.flowSources(a.boardId,a.frameId);
+    case 'freegma_apply_flow':return link(store.mutateFlow(a.boardId,a.expectedRevision,a.operations,a.label));
     case 'freegma_component_reference':return store.componentReference(a.boardId,a.nodeId);
     case 'freegma_save_component':return store.saveComponent(a.boardId,a.expectedRevision,a.nodeId,a.name,a.kind,a.componentId);
     case 'freegma_insert_component':return store.insertComponent(a.boardId,a.expectedRevision,a.componentId,a);
@@ -71,7 +77,7 @@ export function rpc(store,message){
   if(!message||message.jsonrpc!=='2.0'||typeof message.method!=='string')return {jsonrpc:'2.0',id:message?.id??null,error:{code:-32600,message:'Invalid JSON-RPC request'}};
   if(message.id===undefined)return null;
   const respond=result=>({jsonrpc:'2.0',id:message.id,result});
-  if(message.method==='initialize')return respond({protocolVersion:['2025-11-25','2025-06-18','2025-03-26','2024-11-05'].includes(message.params?.protocolVersion)?message.params.protocolVersion:'2025-11-25',capabilities:{tools:{},resources:{}},serverInfo:{name:'Freegma',version:VERSION},instructions:'Read a board before editing; send expectedRevision with atomic operations. Reference images are separate from editable layers. Use native frames/text/shapes, save components/templates, then export React for implementation. All content is in local .free files and Assets folders; SQLite indexes file references.'});
+  if(message.method==='initialize')return respond({protocolVersion:['2025-11-25','2025-06-18','2025-03-26','2024-11-05'].includes(message.params?.protocolVersion)?message.params.protocolVersion:'2025-11-25',capabilities:{tools:{},resources:{}},serverInfo:{name:'Freegma',version:VERSION},instructions:'Read a board before editing; send expectedRevision with atomic operations. Reference images are separate from editable layers. Use native frames/text/shapes, save components/templates, then export React for implementation. All content is in local .free files and Assets folders; SQLite indexes file references. Flows are a separate workspace type: use create_flow_workspace, flow_sources and apply_flow to connect existing frame/element references; do not change source designs to edit a flow.'});
   if(message.method==='ping')return respond({});
   if(message.method==='tools/list')return respond({tools:toolDefinitions});
   if(message.method==='resources/list')return respond({resources:store.workspaces().flatMap(w=>store.boards(w.id).map(b=>({uri:'freegma://board/'+b.id,name:b.name,mimeType:'application/json'})))});
