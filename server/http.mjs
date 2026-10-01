@@ -8,6 +8,7 @@ import {VERSION} from '../shared/design.mjs';
 import {callTool} from './tools.mjs';
 import {buildRoot} from './paths.mjs';
 import {publicSettings,requestOrigin} from './public-access.mjs';
+import {packFree} from './free-format.mjs';
 export const defaultBuild=buildRoot;
 export function embedOrigins(value=process.env.FREEGMA_EMBED_ORIGINS||'http://127.0.0.1:4320,http://127.0.0.1:4318,http://localhost:4320'){return value.split(',').filter(Boolean).map(v=>{const u=new URL(v.trim());if(!['http:','https:'].includes(u.protocol)||u.origin!==v.trim())throw Error('Embedding origins must be HTTP(S) origins without paths.');return u.origin;});}
 const json=(res,status,data)=>{res.writeHead(status,{'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store'});res.end(JSON.stringify(data));};
@@ -28,7 +29,7 @@ export function createServer({store=new FreegmaStore(),build=process.env.FREEGMA
       }
       if(route==='/api/health')return json(res,200,{ok:true,application:'Freegma',version:VERSION});
       const portable=route.match(/^\/api\/files\/(workspace|board)\/([\w-]+)$/);
-      if(portable&&req.method==='GET'){const file=store.exportFree(portable[2],portable[1]);res.setHeader('Content-Disposition',`attachment; filename="${file.filename}"`);return json(res,200,file.package);}
+      if(portable&&req.method==='GET'){const file=store.exportFree(portable[2],portable[1]);res.setHeader('Content-Disposition',`attachment; filename="${file.filename}"`);return json(res,200,packFree(file.package));}
       if(route.startsWith('/assets/')){const a=store.asset(route.slice(8));res.writeHead(200,{'Content-Type':a.mime,'Cache-Control':'public, max-age=31536000, immutable'});return res.end(a.bytes);}
       let body={};if(!['GET','HEAD'].includes(req.method)){if(!req.headers['content-type']?.startsWith('application/json'))return json(res,415,{error:'JSON content type required.'});let bytes=0,chunks=[],limit=route==='/api/files/import'||route==='/api/tools'?128*1024*1024:12*1024*1024;for await(const chunk of req){bytes+=chunk.length;if(bytes>limit)return json(res,413,{error:'Request exceeds file size limit.'});chunks.push(chunk);}try{body=JSON.parse(Buffer.concat(chunks).toString('utf8')||'{}');}catch{return json(res,400,{error:'Invalid JSON.'});}}
       if(route==='/api/source-downloads'&&req.method==='POST'){

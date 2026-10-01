@@ -38,7 +38,7 @@ test('stale color undo conflicts atomically and portable palettes retain indepen
 });
 test('validated file cache avoids repeated parsing, isolates caller edits, and detects other store writes',()=>{
  const folder=fs.mkdtempSync(path.join(os.tmpdir(),'freegma-color-cache-')),db=path.join(folder,'index.sqlite');let a,b;
- try{a=new FreegmaStore(db,{seed:false});const w=a.createWorkspace('Project'),board=a.createBoard(w.id,'Board',{nodes:[makeNode('frame')]});a.getBoard(board.id);let reads=0;const read=a.files.json.bind(a.files);a.files.json=(...args)=>{reads++;return read(...args);};
+ try{a=new FreegmaStore(db,{seed:false});const w=a.createWorkspace('Project'),board=a.createBoard(w.id,'Board',{nodes:[makeNode('frame')]});a.getBoard(board.id);let reads=0;const read=a.files.decoded.bind(a.files);a.files.decoded=(...args)=>{reads++;return read(...args);};
   a.getBoard(board.id);a.getBoard(board.id);assert.equal(reads,0);const returned=a.getBoard(board.id);returned.document.nodes[0].fill='#ff0000';assert.notEqual(a.getBoard(board.id).document.nodes[0].fill,'#ff0000');
   b=new FreegmaStore(db,{seed:false});color(b,w,'#123456');assert.equal(themeColors(a.getBoard(board.id).palette).background,'#123456');assert.ok(reads>0);let fresh=b.getBoard(board.id);b.mutate(fresh.id,fresh.revision,[{op:'update',id:fresh.document.nodes[0].id,patch:{x:91}}]);assert.equal(a.getBoard(board.id).document.nodes[0].x,91);
  }finally{b?.close();a?.close();assert.ok(path.resolve(folder).startsWith(path.resolve(os.tmpdir())+path.sep+'freegma-color-cache-'));fs.rmSync(folder,{recursive:true,force:true});}

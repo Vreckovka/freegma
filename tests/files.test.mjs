@@ -7,13 +7,14 @@ import {DatabaseSync} from 'node:sqlite';
 import {FreegmaStore} from '../server/store.mjs';
 import {makeNode} from '../shared/design.mjs';
 import {workspacePath,boardPath} from '../server/files.mjs';
+import {decodeFree} from '../server/free-format.mjs';
 const png='iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jRZkAAAAASUVORK5CYII=';
 function content(store){const w=store.createWorkspace('Portable workspace'),asset=store.addAsset(w.id,{mime:'image/png',filename:'Reference.png',base64:png}),root=makeNode('frame',{id:'card',paddingLeft:24,cssOverrides:{'box-shadow':'0 1px 8px #000000'}}),image=makeNode('image',{id:'image',parentId:root.id,src:asset.src}),b=store.createBoard(w.id,'Portable board',{nodes:[root,image]});const c=store.saveComponent(b.id,b.revision,root.id,'Card');let board=store.mutate(b.id,c.board.revision,[{op:'update',id:root.id,patch:{gap:32}}]);board=store.meta(board.id,board.revision,{taskRef:'DASH-633'});return {w,asset,board,c};}
 test('design files contain complete content; the index has only references and can be rebuilt',()=>{
   const folder=fs.mkdtempSync(path.join(os.tmpdir(),'freegma-index-')),root=path.join(folder,'workspaces');let store,recovered;
   try{store=new FreegmaStore(path.join(folder,'index.sqlite'),{seed:false,storageRoot:root});const {w,asset,board,c}=content(store);
     assert.deepEqual(store.db.prepare("SELECT name FROM sqlite_master WHERE type='table' ORDER BY name").all().map(r=>r.name),['file_refs','settings']);assert.deepEqual(store.db.prepare('PRAGMA table_info(file_refs)').all().map(c=>c.name),['kind','id','workspace_id','path']);
-    const saved=JSON.parse(fs.readFileSync(path.join(root,boardPath(w.id,board.id)),'utf8')),manifest=JSON.parse(fs.readFileSync(path.join(root,workspacePath(w.id)),'utf8'));
+    const saved=decodeFree(fs.readFileSync(path.join(root,boardPath(w.id,board.id)))).value,manifest=decodeFree(fs.readFileSync(path.join(root,workspacePath(w.id)))).value;
     assert.deepEqual(saved.document,board.document);assert.equal(saved.taskRef,'DASH-633');assert.equal(saved.history.length,2);assert.equal(manifest.components.length,1);assert.equal(fs.readFileSync(path.join(root,w.id,manifest.assets[0].path)).toString('base64'),png);
     store.close();store=null;recovered=new FreegmaStore(path.join(folder,'rebuilt.sqlite'),{seed:false,storageRoot:root});assert.deepEqual(recovered.getBoard(board.id).document,board.document);assert.equal(recovered.getBoard(board.id).revision,board.revision);assert.equal(recovered.component(c.component.id).definition.nodes[0].paddingLeft,24);assert.equal(recovered.asset(asset.id).bytes.toString('base64'),png);assert.equal(recovered.travel(board.id,board.revision,'undo').document.nodes[0].gap,16);
   }finally{store?.close();recovered?.close();fs.rmSync(folder,{recursive:true,force:true});}

@@ -6,6 +6,7 @@ import {FreegmaStore} from '../server/store.mjs';
 import {sourceRoot,buildRoot} from '../server/paths.mjs';
 import {embedOrigins} from '../server/http.mjs';
 import {VERSION} from '../shared/design.mjs';
+import {decodeFree} from '../server/free-format.mjs';
 
 test('standalone paths and release version belong to this repository',()=>{
  assert.equal(sourceRoot,path.resolve(import.meta.dirname,'..'));
@@ -20,7 +21,7 @@ test('embedding accepts explicit generic origins and rejects paths or unsafe pro
 });
 
 test('portable example imports all studio boards and libraries without external task identities',()=>{
- const example=JSON.parse(fs.readFileSync(path.join(sourceRoot,'examples/Freegma-Studio.free'),'utf8'));
+ const example=decodeFree(fs.readFileSync(path.join(sourceRoot,'examples/Freegma-Studio.free'))).value;
  assert.doesNotMatch(JSON.stringify(example),/VAgent|super-admin-|DASH-\d+/);
  const store=new FreegmaStore(':memory:',{seed:false});
  try{

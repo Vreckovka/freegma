@@ -8,7 +8,7 @@ test('warm navigation lists use small summaries even after document cache evicti
  const s=new FreegmaStore(':memory:',{seed:false});try{
   const a=s.createWorkspace('A'),b=s.createWorkspace('B'),first=s.createBoard(a.id,'First',{nodes:[makeNode('frame',{id:'root'})]}),other=s.createBoard(b.id,'Other');
   s.workspaces();s.boards(a.id);s.boards(b.id);s.files.cache.clear();s.files.cacheBytes=0;
-  const original=s.files.json.bind(s.files);let reads=[];s.files.json=file=>{reads.push(file);return original(file);};
+  const original=s.files.decoded.bind(s.files);let reads=[];s.files.decoded=file=>{reads.push(file);return original(file);};
   const catalog=s.workspaces(),list=s.boards(a.id);assert.deepEqual(reads,[]);assert.equal(list[0].name,'First');assert.ok(!('document' in list[0]));assert.ok(!('components' in catalog[0]));
   const file=first.filePath,saved=JSON.parse(fs.readFileSync(file,'utf8'));saved.name='External rename';saved.revision++;
   fs.writeFileSync(file,JSON.stringify(saved));assert.equal(s.boards(a.id)[0].name,'External rename');assert.ok(reads.every(path=>!path.includes(other.id)));

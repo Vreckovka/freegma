@@ -3,6 +3,7 @@ import path from 'node:path';
 import {newId,validateDocument} from '../shared/design.mjs';
 import {validateComments} from '../shared/comments.mjs';
 import {validateColorSystem} from '../shared/colors.mjs';
+import {encodeFreeData,decodeFree} from './free-format.mjs';
 export const fail=(message,status=400)=>{throw Object.assign(new Error(message),{status});};
 export const identifier=id=>{if(typeof id!=='string'||!/^\w[\w-]{0,99}$/.test(id))fail('Invalid file identifier.');return id;};
 export const workspacePath=id=>`${identifier(id)}/${id}.free`;
@@ -36,20 +37,21 @@ export function validateWorkspace(w){
   return w;
 }
 export class DesignFiles {
-  constructor(root){this.root=path.resolve(root);fs.mkdirSync(this.root,{recursive:true});this.pending=null;this.cache=new Map();this.cacheBytes=0;this.stagedCache=new WeakMap();}
+  constructor(root){this.root=path.resolve(root);fs.mkdirSync(this.root,{recursive:true});this.pending=null;this.cache=new Map();this.cacheBytes=0;this.stagedCache=new WeakMap();this.stagedNative=new WeakMap();}
   resolve(relative){
     if(typeof relative!=='string'||relative.includes('\\')||relative.split('/').some(p=>!p||p==='.'||p==='..')||path.isAbsolute(relative))fail('Unsafe Freegma file path.');
     const target=path.resolve(this.root,relative);if(!target.startsWith(this.root+path.sep))fail('File is outside Freegma storage.');
     for(let at=target;at!==this.root;at=path.dirname(at))if(fs.existsSync(at)&&fs.lstatSync(at).isSymbolicLink())fail('Freegma storage cannot contain symbolic links.');return target;
   }
   bytes(relative){if(this.pending?.has(relative)){const staged=this.pending.get(relative);if(staged===null)fail('File was deleted.',404);return staged;}return fs.readFileSync(this.resolve(relative));}
-  json(relative){try{return JSON.parse(this.bytes(relative).toString('utf8'));}catch(e){if(e.status)throw e;fail('Unreadable Freegma file: '+relative,500);}}
+  decoded(relative){try{const bytes=this.bytes(relative),native=this.pending?.has(relative)?this.stagedNative.get(bytes):null,decoded=decodeFree(native||bytes);return {...decoded,bytes:decoded.bytes??(native||bytes).length};}catch(e){if(e.status)throw e;fail('Unreadable Freegma file: '+relative,500);}}
+  json(relative){return this.decoded(relative).value;}
   validated(relative,validate,copy=true){
     if(this.pending?.has(relative)){const bytes=this.bytes(relative);let entries=this.stagedCache.get(bytes);if(!entries){entries=new Map();this.stagedCache.set(bytes,entries);}if(!entries.has(validate))entries.set(validate,validate(this.json(relative)));const value=entries.get(validate);return copy?structuredClone(value):value;}
     const target=this.resolve(relative),stat=fs.statSync(target,{bigint:true}),signature=[stat.mtimeNs,stat.ctimeNs,stat.size,stat.ino].join(':');let entry=this.cache.get(relative);
     if(!entry||entry.signature!==signature){
       if(entry){this.cache.delete(relative);this.cacheBytes-=entry.bytes;}
-      const value=validate(this.json(relative)),bytes=Number(stat.size);entry={signature,value,bytes};
+      const decoded=this.decoded(relative),value=validate(decoded.value),bytes=decoded.bytes;entry={signature,value,bytes};
       if(bytes<=96*1024*1024){while(this.cache.size&&(this.cache.size>=32||this.cacheBytes+bytes>96*1024*1024)){const key=this.cache.keys().next().value;this.cacheBytes-=this.cache.get(key).bytes;this.cache.delete(key);}this.cache.set(relative,entry);this.cacheBytes+=bytes;}
     }else{this.cache.delete(relative);this.cache.set(relative,entry);}
     return copy?structuredClone(entry.value):entry.value;
@@ -62,7 +64,7 @@ export class DesignFiles {
     if(!entry||entry.signature!==signature){entry={signature,value:project(this.validated(relative,validate,false))};this.summaries.set(relative,entry);if(this.summaries.size>4096)this.summaries.delete(this.summaries.keys().next().value);}
     return structuredClone(entry.value);
   }
-  stage(relative,value){this.resolve(relative);if(!this.pending)throw Error('File writes require a storage transaction.');this.pending.set(relative,Buffer.isBuffer(value)?value:Buffer.from(JSON.stringify(value)+'\n'));}
+  stage(relative,value){this.resolve(relative);if(!this.pending)throw Error('File writes require a storage transaction.');if(!Buffer.isBuffer(value)&&relative.endsWith('.free')){const encoded=encodeFreeData(value);this.stagedNative.set(encoded.bytes,encoded.native);this.pending.set(relative,encoded.bytes);}else this.pending.set(relative,Buffer.isBuffer(value)?value:Buffer.from(JSON.stringify(value)+'\n'));}
   remove(relative){this.resolve(relative);if(!this.pending)throw Error('File deletion requires a storage transaction.');this.pending.set(relative,null);}
   publish(entry){if(entry.base64===null){fs.rmSync(this.resolve(entry.file),{force:true});}else this.atomic(entry.file,Buffer.from(entry.base64,'base64'));const cached=this.cache.get(entry.file);if(cached){this.cacheBytes-=cached.bytes;this.cache.delete(entry.file);}}
   atomic(relative,bytes){const target=this.resolve(relative);fs.mkdirSync(path.dirname(target),{recursive:true});const temp=target+'.'+newId('tmp');let fd;try{fd=fs.openSync(temp,'wx');fs.writeFileSync(fd,bytes);fs.fsyncSync(fd);fs.closeSync(fd);fd=null;fs.renameSync(temp,target);}finally{if(fd!=null)fs.closeSync(fd);if(fs.existsSync(temp))fs.unlinkSync(temp);}}

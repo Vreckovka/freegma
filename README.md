@@ -141,6 +141,28 @@ freegma/
 
 SQLite stores references, not design documents. `/w/workspace_ID/b/board_ID` maps to its `.free` file. Portable exports bundle assets, library and settings so they can travel alone. For a filesystem move, stop editors and copy the entire workspace folder. IDs and URLs survive a move; import collisions generate new IDs without overwriting designs. See the [editor guide](docs/editor-guide.md).
 
+Large `.free` boards, manifests and downloads use lossless compression. The outer file is JSON with `format: "freegma-packed"`, `encoding: "gzip-base64"`, the original content type and expanded byte count. Its payload contains the complete native JSON, including every Undo snapshot, layout, component reference, flow route, comment and theme. Assets keep their original bytes. Small files stay ordinary JSON, and files generated as ordinary native JSON still import normally. The expanded portable package limit remains 128 MB; malformed or oversized packed files are rejected before writing.
+
+Agents can keep creating native JSON and using atomic MCP operations. `freegma_export_file` returns readable native JSON by default; set `compact: true` for a smaller transferable package. Browser `.free` downloads use the compact format automatically. To inspect a compressed file or repack one locally:
+
+```sh
+node scripts/free-file.mjs unpack input.free readable.free
+node scripts/free-file.mjs pack readable.free smaller.free
+```
+
+Both commands preserve the input and refuse to overwrite an existing output. Existing storage files become compact when next saved. For a one-time migration, first ensure **all HTTP and MCP processes** use this version, then run `node scripts/compact-files.mjs /absolute/path/to/new-backup-directory`. It takes the storage lock for each file, backs up its exact original bytes, publishes through the normal crash recovery journal, and preserves revisions, Undo/Redo, images and recoverable deleted workspaces.
+
+Local performance comparisons include `.free` board/manifests, portable examples, original assets, the SQLite index, production build, source, README media and development dependencies. Capture sizes **before** an optimization, then measure the same frozen documents afterward. The scripts refuse to replace an existing baseline or measured run:
+
+```sh
+node scripts/performance/snapshot-sizes.mjs logs/my-size-baseline
+node scripts/performance/file-sizes.mjs logs/my-size-baseline round-01
+# Append its size rows to an existing local timing comparison:
+node scripts/performance/compare.mjs logs/my-performance round-01 logs/my-size-baseline/round-01.json
+```
+
+The original timing baseline remains unchanged. A size metric added later names its separate capture rather than inventing an earlier measurement. Recovery archives stay separate from active workspace size; database/WAL size can vary while editing. These benchmarks never call Vercel.
+
 ## MCP
 
 Use `yarn mcp` or configure your agent with an absolute Node executable and `server/mcp.mjs`. HTTP and MCP share storage and optimistic revisions.
@@ -167,7 +189,7 @@ MCP: `freegma_create_flow_workspace({name})`, `freegma_flow_sources({boardId,fra
 
 Delete a board from its **⋯** menu in the Boards list. To delete a project/workspace, open the workspace dropdown and choose **Delete workspace…**. The confirmation shows the scope and requires the exact name. Deleting a parent includes its children; deleting a board keeps shared library components and assets. Changed designs invalidate old confirmations.
 
-Deleted files are retained in `data/workspaces/.trash/deletion_ID/`, including a `deletion.json` inventory. To recover, stop all Freegma HTTP/MCP clients and copy the archived files back to their original relative paths; for an individual board, add its `{id,path:"b/board_ID.free"}` reference to the workspace manifest. Avoid overwriting newer files. Restart Freegma to rebuild the SQLite index. Deletion is separate from canvas Undo.
+Deleted files are retained in `data/workspaces/.trash/deletion_ID/`, including a `deletion.json` inventory. To recover, stop all Freegma HTTP/MCP clients and copy the archived files back to their original relative paths; for an individual board, add its `{id,path:"b/board_ID.free"}` reference to the workspace manifest. If the manifest is packed, unpack it with `scripts/free-file.mjs` before editing its JSON. Avoid overwriting newer files. Restart Freegma to rebuild the SQLite index. Deletion is separate from canvas Undo.
 
 ## Configuration and embedding
 
