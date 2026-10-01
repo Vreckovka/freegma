@@ -1,8 +1,9 @@
 import {ICON_PATHS} from './icons.mjs';
 import {validateFlow} from './flows.mjs';
+import {validateOverlay,pruneOverlay} from './flow-overlay.mjs';
 import {validateBindings,detachPatchedColors,readPath} from './colors.mjs';
 import {validateCssOverrides,mergeCss,clearCssForPatch,cssForDocument} from './css.mjs';
-export const VERSION = "0.1.19";
+export const VERSION = "0.1.20";
 export const TYPES = ["frame", "group", "rectangle", "ellipse", "text", "image", "icon", "vector"];
 export const DEFAULTS = { x:0, y:0, width:240, height:160, rotation:0, fill:"#ffffff", color:"#172033", stroke:"#dfe4ec", strokeWidth:0, radius:0, opacity:1, fontSize:16, fontWeight:400, fontFamily:"Inter, system-ui, sans-serif", lineHeight:1.5, textAlign:"left", layout:"free", gap:16, paddingTop:0, paddingRight:0, paddingBottom:0, paddingLeft:0, marginTop:0, marginRight:0, marginBottom:0, marginLeft:0, align:"start", justify:"start", sizing:"fixed", visible:true, locked:false, clip:false, text:"", src:"", icon:"sparkles" };
 const numeric = new Set(["x","y","width","height","rotation","strokeWidth","radius","opacity","fontSize","fontWeight","lineHeight","gap","paddingTop","paddingRight","paddingBottom","paddingLeft","marginTop","marginRight","marginBottom","marginLeft"]);
@@ -60,6 +61,7 @@ export function validateDocument(document) {
     let parent=node,depth=0;const visited=new Set();
     while (parent) { if (visited.has(parent.id)||++depth>100) fail("Layers cannot contain cycles or exceed 100 levels.");visited.add(parent.id);parent=map.get(parent.parentId); }
   }
+  if(document.flowOverlay!=null){if(document.flow)fail('Flow layers belong to design boards.');validateOverlay(document.flowOverlay,document.nodes);}
   return document;
 }
 export function descendants(nodes,id) { const set=new Set([id]);let changed=true;while(changed){changed=false;for(const n of nodes)if(set.has(n.parentId)&&!set.has(n.id)){set.add(n.id);changed=true;}}return nodes.filter(n=>set.has(n.id)); }
@@ -83,7 +85,7 @@ export function applyOperations(input,operations) {
     else if(op.op==="detach") { for(const n of descendants(doc.nodes,find(op.id).id)){delete n.componentId;delete n.sourceId;delete n.overrides;delete n.instancePlacement;} }
     else fail(`Unknown operation: ${op.op}`);
   }
-  return validateDocument(doc);
+  return validateDocument(pruneOverlay(doc));
 }
 export function layerStyle(n,parent=null,root=false) {return mergeCss(baseLayerStyle(n,parent,root),n.cssOverrides);}
 function baseLayerStyle(n,parent=null,root=false) {

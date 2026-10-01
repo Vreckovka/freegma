@@ -1,3 +1,4 @@
+import {pruneOverlay} from '../shared/flow-overlay.mjs';
 import {clone,subtree,descendants,newId} from '../shared/design.mjs';
 import {applyInstanceOverrides} from '../shared/instance-locks.mjs';
 import {componentContext} from '../shared/components.mjs';
@@ -35,6 +36,7 @@ export const componentStoreMethods={
             const first=doc.nodes.findIndex(n=>n.id===instance.id);const at=doc.nodes.slice(0,first).filter(n=>!oldIds.has(n.id)).length;
             doc.nodes=doc.nodes.filter(n=>!oldIds.has(n.id));doc.nodes.splice(at,0,...updated,...kept);
           }
+          pruneOverlay(doc);
           if(b.id===sourceBoardId){const raw=this.readBoard(b.id);raw.document=doc;if(updateHistory){const entry=raw.history.find(h=>h.seq===raw.cursor);if(entry)entry.after=clone(doc);}this.files.stage(this.ref('board',b.id).path,raw);}
           else this.writeBoard(b,doc,'Sync shared component '+component.name);
         }

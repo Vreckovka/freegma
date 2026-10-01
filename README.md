@@ -180,3 +180,13 @@ Defaults need no configuration. Set variables in your shell/service; `.env.examp
 Embed by iframe in a permitted host. Navigation sends `{type:"freegma:navigate",path:"/w/…/b/…"}` to the referrer's origin; hosts check sender origin and iframe window. A task reference is plain optional metadata.
 
 The server binds to loopback and checks API origins. Comment identities are local display labels. Remote multi-user hosting requires authentication and persistent storage; a static-only site cannot host this SQLite server.
+
+### Flow layer on existing designs
+
+Open any design board → **Flow layer** in the canvas toolbar → **＋ Transition**. Select the existing source frame, its triggering button (or frame state), and the target frame. Set Straight / If / Repeat, a short title, and a longer description.
+
+Arrows sit over the actual native frames. Hover an arrow or its title: the exact trigger lifts with a blue outline, and a popup offers the description, **Edit**, and **Remove**. Click its title to keep the popup open. Move frames, pan or zoom and the arrows follow. Turn the layer off to keep designing. Each saved edit is one Ctrl+Z action. The board’s `.free` file carries the flow layer; generated React contains only the artwork.
+
+**Frame reference** adds a full-size linked frame from another workspace/board to this overlay, with a draggable Reference caption and an **Open original** link. Its native layers load only when visible and refresh when the source design or palette changes. Connect native frames and references, including exact source-button triggers. Reference removal leaves the source intact. Board exports store references; source designs travel separately. Separate **Flows workspaces** remain available for abstract charts. Feature mockups live in the Freegma project; this does not automatically map your product’s routes.
+
+Try [Flow-Overlay-Example.free](examples/Flow-Overlay-Example.free): two example boards with actual canvas arrows and a linked source frame. [Flow-Overlay-Feature.free](examples/Flow-Overlay-Feature.free) contains four editable feature mockups: canvas overlay, hover popup, transition editor, and cross-board references.
