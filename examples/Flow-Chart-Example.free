@@ -1,7 +1,7 @@
 {
   "format": "freegma-package",
   "formatVersion": 1,
-  "applicationVersion": "0.1.22",
+  "applicationVersion": "0.1.23",
   "kind": "workspace",
   "workspace": {
     "parentId": null,
@@ -114,7 +114,23 @@
               "action": "if",
               "triggerId": null,
               "event": "state-change",
-              "explanation": "Permission granted: continue to Details."
+              "explanation": "Permission granted: continue to Details.",
+              "route": {
+                "to": {
+                  "side": "top",
+                  "offset": 0.21557264163040465
+                },
+                "controls": [
+                  {
+                    "x": 177.93220379487002,
+                    "y": -306.09399793466787
+                  },
+                  {
+                    "x": 0,
+                    "y": -278.26127830711573
+                  }
+                ]
+              }
             },
             {
               "id": "chart_no",
@@ -134,7 +150,13 @@
               "action": "straight",
               "triggerId": "overlay_details_button",
               "event": "click",
-              "explanation": "The accepted branch merges at the same final state."
+              "explanation": "The accepted branch merges at the same final state.",
+              "route": {
+                "from": {
+                  "side": "left",
+                  "offset": 0.8244746832320582
+                }
+              }
             },
             {
               "id": "chart_repeat",
@@ -179,34 +201,34 @@
             {
               "id": "chart_start",
               "kind": "start",
-              "x": 200,
-              "y": -40,
+              "x": 217.75204729044697,
+              "y": -187.54948397254606,
               "title": "Start",
               "explanation": "The entry point loads Home."
             },
             {
               "id": "chart_decision",
               "kind": "decision",
-              "x": 760,
-              "y": 275,
+              "x": 747.7975259348598,
+              "y": 95.83276946190838,
               "title": "Allowed?",
               "explanation": "Check access. Yes opens Details; No finishes the flow."
             },
             {
               "id": "chart_end",
               "kind": "end",
-              "x": 760,
-              "y": 650,
+              "x": 757.9908671897018,
+              "y": 498.8263312467593,
               "title": "End",
               "explanation": "Both branches finish here. End has no outgoing arrows."
             }
           ]
         }
       },
-      "revision": 5,
+      "revision": 32,
       "cursor": 0,
       "taskRef": "",
-      "updatedAt": "2026-10-01T19:59:54.960Z",
+      "updatedAt": "2026-10-01T20:22:19.211Z",
       "history": [],
       "comments": [],
       "commentsRevision": 0
