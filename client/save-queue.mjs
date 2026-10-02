@@ -28,10 +28,11 @@ export function createSaveQueue({getBoard,apply,send,onBoard,onState=()=>{},canP
   const current=view||getBoard();if(!current)throw Error('Choose a board first.');
   if(!base||base.id!==current.id){if(pending.length||flight)throw Error('Save the current board before switching.');accept(current);}
   const stable=action.kind==='history'?{...wireAction(action),localStep:action.localStep}:structuredClone(action),next=applyAction(current,stable);
-  if(JSON.stringify(next.document)===JSON.stringify(current.document))return current;
+  const nextJson=JSON.stringify(next.document),currentJson=JSON.stringify(current.document);
+  if(nextJson===currentJson)return current;
   if(stable.operations.length>limits.maxOperations||bytes(stable)>limits.maxPendingBytes||count()>=limits.maxPendingActions||bytes([...pending,stable])>limits.maxPendingBytes)throw Error('Too many unsaved changes. Wait for saving or retry before editing more.');
   if(!count()&&!flight&&!error){firstAt=now();saved=0;total=0;}
-  if(stable.kind!=='history')steps.record(current,next);
+  if(stable.kind!=='history')steps.record(current,next,{before:currentJson,after:nextJson});
   pending.push(stable);view=next;total++;publish(true);emit();schedule();return view;
  }
  function prefix(){let size=2,operations=0,n=0;for(const action of pending){const extra=bytes(action)+1;if(n&&(n>=limits.maxActions||operations+action.operations.length>limits.maxOperations||size+extra>limits.maxBytes))break;size+=extra;operations+=action.operations.length;n++;}return pending.slice(0,n);}
