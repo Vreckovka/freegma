@@ -1,0 +1,10 @@
+{
+  "version": "0.1.66",
+  "scope": "Frozen full-document pipeline outputs for nested flex/percent positions, images, vectors and generated schematic children.",
+  "snapshots": {
+    "board": "3e68d03e35a03e2a1bbd523638c0d75a7162660ab7f5077cc4bd3f7ee096d87e",
+    "card": "28e7d3c7b421f3856b7986b1a19085c264e576ef1531f5e4780ccc0915b79ceb",
+    "heading": "bc3dcd01d5adf75b8433fa3b7ad2bbaf93b1261d185f998d49c057973be8e1eb",
+    "swatch": "f59053778ba71dc3214974cdd0eafa37709efe1f82a2d6499cb2f0962484735c"
+  }
+}
