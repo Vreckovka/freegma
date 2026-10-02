@@ -14,6 +14,8 @@ Editable canvas · Components · Real CSS · Portable workspaces · MCP
 
 </div>
 
+[Final optimization comparison — v0.1.69](docs/PERFORMANCE-FINAL.md) includes the full local benchmark history, file sizes, network transfer, MCP estimates, and the latest navigation-cache results.
+
 ## Quick start
 
 Install **Node.js 24.14 or newer** and Yarn. Node includes the SQLite runtime; no separate database server is required.
