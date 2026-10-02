@@ -3,7 +3,7 @@ import {validateFlow} from './flows.mjs';
 import {validateOverlay,pruneOverlay} from './flow-overlay.mjs';
 import {validateBindings,detachPatchedColors,readPath} from './colors.mjs';
 import {validateCssOverrides,mergeCss,clearCssForPatch,cssForDocument} from './css.mjs';
-export const VERSION = "0.1.52";
+export const VERSION = "0.1.53";
 export const TYPES = ["frame", "group", "rectangle", "ellipse", "text", "image", "icon", "vector"];
 export const DEFAULTS = { x:0, y:0, width:240, height:160, rotation:0, fill:"#ffffff", color:"#172033", stroke:"#dfe4ec", strokeWidth:0, radius:0, opacity:1, fontSize:16, fontWeight:400, fontFamily:"Inter, system-ui, sans-serif", lineHeight:1.5, textAlign:"left", layout:"free", gap:16, paddingTop:0, paddingRight:0, paddingBottom:0, paddingLeft:0, marginTop:0, marginRight:0, marginBottom:0, marginLeft:0, align:"start", justify:"start", sizing:"fixed", visible:true, locked:false, clip:false, text:"", src:"", icon:"sparkles" };
 const numeric = new Set(["x","y","width","height","rotation","strokeWidth","radius","opacity","fontSize","fontWeight","lineHeight","gap","paddingTop","paddingRight","paddingBottom","paddingLeft","marginTop","marginRight","marginBottom","marginLeft"]);
