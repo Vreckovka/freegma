@@ -49,9 +49,9 @@ export class DesignFiles {
   validated(relative,validate,copy=true){
     if(this.pending?.has(relative)){const bytes=this.bytes(relative);let entries=this.stagedCache.get(bytes);if(!entries){entries=new Map();this.stagedCache.set(bytes,entries);}if(!entries.has(validate))entries.set(validate,validate(this.json(relative)));const value=entries.get(validate);return copy?structuredClone(value):value;}
     const target=this.resolve(relative),stat=fs.statSync(target,{bigint:true}),signature=[stat.mtimeNs,stat.ctimeNs,stat.size,stat.ino].join(':');let entry=this.cache.get(relative);
-    if(!entry||entry.signature!==signature){
+    if(!entry||entry.signature!==signature||entry.validator!==validate){
       if(entry){this.cache.delete(relative);this.cacheBytes-=entry.bytes;}
-      const decoded=this.decoded(relative),value=validate(decoded.value),bytes=decoded.bytes;entry={signature,value,bytes};
+      const decoded=this.decoded(relative),value=validate(decoded.value),bytes=decoded.bytes;entry={signature,value,bytes,validator:validate};
       if(bytes<=96*1024*1024){while(this.cache.size&&(this.cache.size>=32||this.cacheBytes+bytes>96*1024*1024)){const key=this.cache.keys().next().value;this.cacheBytes-=this.cache.get(key).bytes;this.cache.delete(key);}this.cache.set(relative,entry);this.cacheBytes+=bytes;}
     }else{this.cache.delete(relative);this.cache.set(relative,entry);}
     return copy?structuredClone(entry.value):entry.value;
@@ -66,7 +66,21 @@ export class DesignFiles {
   }
   stage(relative,value){this.resolve(relative);if(!this.pending)throw Error('File writes require a storage transaction.');if(!Buffer.isBuffer(value)&&relative.endsWith('.free')){const encoded=encodeFreeData(value);this.stagedNative.set(encoded.bytes,encoded.native);this.pending.set(relative,encoded.bytes);}else this.pending.set(relative,Buffer.isBuffer(value)?value:Buffer.from(JSON.stringify(value)+'\n'));}
   remove(relative){this.resolve(relative);if(!this.pending)throw Error('File deletion requires a storage transaction.');this.pending.set(relative,null);}
-  publish(entry){if(entry.base64===null){fs.rmSync(this.resolve(entry.file),{force:true});}else this.atomic(entry.file,Buffer.from(entry.base64,'base64'));const cached=this.cache.get(entry.file);if(cached){this.cacheBytes-=cached.bytes;this.cache.delete(entry.file);}}
+  publish(entry){
+    const bytes=entry.base64===null?null:Buffer.from(entry.base64,'base64'),staged=this.pending?.get(entry.file);
+    if(bytes===null)fs.rmSync(this.resolve(entry.file),{force:true});else this.atomic(entry.file,bytes);
+    const cached=this.cache.get(entry.file);if(cached){this.cacheBytes-=cached.bytes;this.cache.delete(entry.file);}
+    // Promotion requires validation of the exact byte snapshot just published.
+    // Recovery and unvalidated/restaged bytes always take the normal read path.
+    const checked=bytes&&staged&&bytes.equals(staged)?this.stagedCache.get(staged)?.entries().next().value:null;
+    if(checked){const [validator,value]=checked,nativeBytes=this.stagedNative.get(staged)?.length??staged.length;
+      if(nativeBytes<=96*1024*1024){
+        const stat=fs.statSync(this.resolve(entry.file),{bigint:true}),signature=[stat.mtimeNs,stat.ctimeNs,stat.size,stat.ino].join(':');
+        while(this.cache.size&&(this.cache.size>=32||this.cacheBytes+nativeBytes>96*1024*1024)){const key=this.cache.keys().next().value;this.cacheBytes-=this.cache.get(key).bytes;this.cache.delete(key);}
+        this.cache.set(entry.file,{signature,value,bytes:nativeBytes,validator});this.cacheBytes+=nativeBytes;
+      }
+    }
+  }
   atomic(relative,bytes){const target=this.resolve(relative);fs.mkdirSync(path.dirname(target),{recursive:true});const temp=target+'.'+newId('tmp');let fd;try{fd=fs.openSync(temp,'wx');fs.writeFileSync(fd,bytes);fs.fsyncSync(fd);fs.closeSync(fd);fd=null;fs.renameSync(temp,target);}finally{if(fd!=null)fs.closeSync(fd);if(fs.existsSync(temp))fs.unlinkSync(temp);}}
   flush(){if(!this.pending?.size)return false;const entries=[...this.pending].map(([file,bytes])=>({file,base64:bytes===null?null:bytes.toString('base64')}));this.atomic('.transaction.json',Buffer.from(JSON.stringify({version:1,entries})));for(const entry of entries)this.publish(entry);return true;}
   finish(){const journal=this.resolve('.transaction.json');if(fs.existsSync(journal))fs.unlinkSync(journal);}
