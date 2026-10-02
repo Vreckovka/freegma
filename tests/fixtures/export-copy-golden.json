@@ -1,0 +1,9 @@
+{
+  "sourceVersion": "0.1.65",
+  "normalization": "Generated comment version only; all JSX, CSS, filenames, asset paths and selected node IDs remain exact.",
+  "snapshots": {
+    "board": "c7c388455e5aea22c040fafe5cb39455461bad4c7c875d9b712dc845bde2aac8",
+    "root": "42f17a1230ad1b82246b6dfb273e7c0c3279fa9a57d57bd1e96f2f9323ed38df",
+    "swatch": "d65ca7ebd988bb06572b69cde9eec2100295bf0c170ae46332e7c253277b73cd"
+  }
+}
