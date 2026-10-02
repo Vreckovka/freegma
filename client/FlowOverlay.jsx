@@ -1,7 +1,7 @@
 import React,{useState,useRef,useLayoutEffect,useEffect,useMemo,useId} from 'react';
 import {Icon} from './icons.jsx';
 import {newId} from '../shared/design.mjs';
-import {belongsToFrame,overlayPath,TRANSITION_EVENTS,transitionEvent,symbolBounds,overlaySvgPath,overlayLabelCandidates} from '../shared/flow-overlay.mjs';
+import {overlayPath,TRANSITION_EVENTS,transitionEvent,symbolBounds,overlaySvgPath,overlayLabelCandidates} from '../shared/flow-overlay.mjs';
 import './flow-overlay.css';
 import {FramePicker} from './FlowsEditor.jsx';
 import {FlowReferenceFrame} from './FlowReferenceFrame.jsx';
@@ -17,6 +17,7 @@ import {flowEndpointIds,flowFrameHighlights} from './flow-highlights.mjs';
 import {createFlowViewportFilter} from './flow-viewport.mjs';
 import {createFlowLabelIndex} from './flow-label-index.mjs';
 import {createFlowBoundsLookup} from './flow-bounds-lookup.mjs';
+import {flowTriggerNodes} from './flow-trigger-nodes.mjs';
 function EventBadge({edge}){const event=transitionEvent(edge);return <span className="flow-event-badge"><Icon name={event.icon} size={12}/><span>{event.label}</span></span>;}
 function fallbackBounds(map,id){const n=map.get(id);if(!n)return null;let left=n.x,top=n.y,p=map.get(n.parentId),depth=0;while(p&&depth++<101){left+=p.x;top+=p.y;p=map.get(p.parentId);}return {left,top,width:n.width,height:n.height};}
 export function FlowOverlay({board,document,viewport,canvasRef,canvasSize,onOperations,onHighlight,busy,api,workspaces,onFit,selected=[]}){
@@ -53,7 +54,7 @@ export function FlowOverlay({board,document,viewport,canvasRef,canvasSize,onOper
  function previewMove(id,position){setPositions(old=>{const next={...old};if(position)next[id]=position;else delete next[id];return next;});}
  const nameOf=id=>loaded[id]?.nodes[0]?.name||frames.find(f=>f.id===id)?.name||id;
  function frameLabel(frame){if(frame.kind)return 'Flow '+frame.kind+' · '+frame.title;if(frame.reference)return '↗ '+(loaded[frame.id]?.nodes[0]?.name||frame.name);let path=[frame.name],p=map.get(frame.parentId),depth=0;while(p&&depth++<101){path.unshift(p.name);p=map.get(p.parentId);}return path.join(' / ');}
- const externalSource=references.find(f=>f.id===editor?.fromFrameId),triggerNodes=externalSource?sourceElements:nodes.filter(n=>n.id!==editor?.fromFrameId&&belongsToFrame(map,n.id,editor?.fromFrameId));
+ const externalSource=references.find(f=>f.id===editor?.fromFrameId),triggerNodes=useMemo(()=>flowTriggerNodes(nodes,map,editor?.fromFrameId,externalSource,sourceElements),[nodes,map,editor?.fromFrameId,externalSource,sourceElements]);
  const selectedPath=paths.find(p=>p.edge.id===routeSelected);
  function selectRoute(id){clear();setSelectedPivot(null);setRoutePreview(null);setRouteSelected(id);setError('');}
  async function saveRoute(id,route){setSaving(true);setError('');try{await onOperations([{op:'updateEdge',id,patch:{route}}],route?'Adjust arrow route':'Reset arrow route');}finally{setSaving(false);}}
