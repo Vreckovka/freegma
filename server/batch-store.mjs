@@ -12,13 +12,13 @@ export const batchStoreMethods={
    if(!document.flow)fail('Flow operations require a flow board.');
    const doc=applyFlowOperations(document,operations);
    for(const op of operations){if(op.op==='addNode'&&op.node.reference)this.checkFlowReference(op.node.reference);if(op.op==='updateNode'&&op.patch.reference)this.checkFlowReference(op.patch.reference);if(op.op==='addEdge'&&op.edge.trigger)this.checkFlowReference(op.edge.trigger);if(op.op==='updateEdge'&&op.patch.trigger)this.checkFlowReference(op.patch.trigger);}
-   return doc;
+   return validateDocument(doc);
   }
   if(kind!=='overlay'||document.flow)fail('Unknown or incompatible edit kind.');
   const doc=applyOverlayOperations(document,operations),refs=new Map((doc.flowOverlay.frames||[]).map(f=>[f.id,f]));
   for(const op of operations){if(op.op==='addFrame')this.checkFlowReference(op.frame.reference);if(op.op==='updateFrame'&&op.patch.reference)this.checkFlowReference(op.patch.reference);if(op.op==='addEdge'||op.op==='updateEdge'){const edge=doc.flowOverlay.edges.find(e=>e.id===(op.edge?.id||op.id)),source=refs.get(edge?.fromFrameId);if(source&&(op.op==='addEdge'||Object.hasOwn(op.patch,'fromFrameId')||Object.hasOwn(op.patch,'triggerId')))this.checkFlowReference({...source.reference,...(edge.triggerId?{elementId:edge.triggerId}:{})});}}
   for(const op of operations.filter(op=>op.op==='updateFrame'&&op.patch.reference)){const source=refs.get(op.id);for(const edge of doc.flowOverlay.edges.filter(e=>e.fromFrameId===op.id))this.checkFlowReference({...source.reference,...(edge.triggerId?{elementId:edge.triggerId}:{})});}
-  return doc;
+  return validateDocument(doc);
  },
  mutateBatch(id,expectedRevision,batchId,actions){return this.transaction(()=>{
   if(typeof batchId!=='string'||!/^[\w-]{8,100}$/.test(batchId))fail('Supply a unique batch ID.');
@@ -36,7 +36,8 @@ export const batchStoreMethods={
     const document=direction==='undo'?h.before:h.after;this.validateAssets(document,b.workspaceId);detachMissingCommentAnchors(b,document);const at=new Date().toISOString();if(direction==='undo')h.undoneAt=at;
     Object.assign(b,{document,cursor:direction==='undo'?seq-1:seq,revision:b.revision+1,updatedAt:at});changed=true;continue;
    }
-   const next=this.batchDocument(b.document,action);validateDocument(next);this.validateAssets(next,b.workspaceId);
+   // Design actions validate each operation in lockedOperations; other kinds validate in batchDocument.
+   const next=this.batchDocument(b.document,action);this.validateAssets(next,b.workspaceId);
    if(JSON.stringify(next)===JSON.stringify(b.document))continue;
    this.clearColorRedo(b.workspaceId);changed=true;b.history=b.history.filter(h=>h.seq<=b.cursor);
    detachMissingCommentAnchors(b,next);
