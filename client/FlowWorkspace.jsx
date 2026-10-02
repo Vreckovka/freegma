@@ -1,8 +1,7 @@
 import React,{useEffect,useMemo,useRef,useState,useId} from 'react';
 import {newId} from '../shared/design.mjs';
 import {flowLink} from '../shared/flows.mjs';
-import {routeForPorts} from '../shared/flow-ports.mjs';
-import {flowStepBounds,flowStepPath,overlaySvgPath,addFlowPivot,removeFlowPivot} from '../shared/flow-route.mjs';
+import {flowStepBounds,overlaySvgPath,addFlowPivot,removeFlowPivot} from '../shared/flow-route.mjs';
 import {TRANSITION_EVENTS,transitionEvent} from '../shared/flow-events.mjs';
 import {FramePicker,FrameThumbnail,ReferenceInfo,TransitionFields,EditField} from './FlowsEditor.jsx';
 import {FlowRouteHandles} from './FlowRouteHandles.jsx';
@@ -14,6 +13,7 @@ import {SidePanel} from './SidePanel.jsx';
 import {Icon} from './icons.jsx';
 import {useFlowInspection} from './useFlowInspection.jsx';
 import {flowFrameHighlights} from './flow-highlights.mjs';
+import {createFlowRoutingCache} from './flow-routing-cache.mjs';
 import './flows.css';
 import './flow-overlay.css';
 const symbols={frame:'▣',if:'◇',decision:'◇',start:'●',repeat:'↻',end:'◉'};
@@ -22,6 +22,7 @@ export function FlowsEditor({board,initialState,onViewState,boards,workspaces,ap
  const [selected,setSelected]=useState(null),[picker,setPicker]=useState(false),[connecting,setConnecting]=useState(null),[view,setView]=useState({x:60,y:90,zoom:1});
  const [drag,setDrag]=useState(null),[error,setError]=useState(''),[routePreview,setRoutePreview]=useState(null),[selectedPivot,setSelectedPivot]=useState(null);
  const [showCurveControls,setShowCurveControls]=useState(false);
+ const routeFlow=useMemo(createFlowRoutingCache,[]);
  useEffect(()=>setShowCurveControls(false),[board?.id,selected]);
  const [liveSizes,setLiveSizes]=useState({}),[connectorEpoch,setConnectorEpoch]=useState(0),[pendingReference,setPendingReference]=useState(null);
  const canvas=useRef(null),gesture=useRef(null),marker=useId().replaceAll(':','');
@@ -45,8 +46,8 @@ export function FlowsEditor({board,initialState,onViewState,boards,workspaces,ap
   const ops=[{op:'addNode',node:n}];if(connection)ops.push({op:'addEdge',edge:navigation({...connection,to:n.id,toPort:'left',route:{...connection.route,to:{side:'left',offset:.5}}})});
   const result=await strict(ops,'Add '+kind+(connection?' and connect':''));if(result){setSelected(n.id);setPicker(false);setPendingReference(null);setConnectorEpoch(v=>v+1);}return result;
  }
- const routed=flow.edges.map(e=>{const a=nodes.find(n=>n.id===e.from),b=nodes.find(n=>n.id===e.to);return a&&b?flowStepPath(a,b,{...e,route:e.id===selected&&routePreview?routePreview:routeForPorts(e,a.ports,b.ports)}):null;}).filter(Boolean),selectedPath=routed.find(p=>p.edge.id===selected);
- const owners=nodes.map(n=>({id:n.id,name:n.title,bounds:flowStepBounds(n),ports:n.ports,canSource:n.kind!=='end',canTarget:n.kind!=='start'}));
+ const routed=routeFlow(nodes,flow.edges,selected,routePreview),selectedPath=routed.find(p=>p.edge.id===selected);
+ const owners=useMemo(()=>nodes.map(n=>({id:n.id,name:n.title,bounds:flowStepBounds(n),ports:n.ports,canSource:n.kind!=='end',canTarget:n.kind!=='start'})),[nodes]);
  async function saveRouteById(id,route){return strict([{op:'updateEdge',id,patch:{route}}],'Edit arrow route');}
  const saveRoute=route=>saveRouteById(edge.id,route);
  const lineGesture=useFlowRouteGesture({viewport:view,canvasRef:canvas,busy,onPreview:setRoutePreview,onSave:saveRouteById,onError:setError});
