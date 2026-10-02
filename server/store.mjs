@@ -34,7 +34,7 @@ export class FreegmaStore {
     this.db=new DatabaseSync(filename,{timeout:10000});this.db.exec(`PRAGMA journal_mode=WAL; PRAGMA foreign_keys=ON; CREATE TABLE IF NOT EXISTS settings(key TEXT PRIMARY KEY,value TEXT NOT NULL); CREATE TABLE IF NOT EXISTS file_refs(kind TEXT NOT NULL,id TEXT NOT NULL,workspace_id TEXT NOT NULL,path TEXT NOT NULL,PRIMARY KEY(kind,id));`);
     try{
       if(this.db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='boards'").get())this.migrateLegacy();
-      this.transaction(()=>this.reindex());
+      this.transaction(()=>this.reindex({lazyBoards:true}));
       for(const name of ['workspaces','workspace','createWorkspace','renameWorkspace','setWorkspaceParent','boards','getBoard','boardStatus','createBoard','history','components','component','asset','addAsset','export','exportFree','importFree','insertColorSchematic']){const method=this[name].bind(this);this[name]=(...args)=>this.transaction(()=>method(...args));}
       if(seed&&!this.workspaces().length&&!this.db.prepare("SELECT value FROM settings WHERE key='initialized'").get()){const ws=this.createWorkspace('Design studio'),b=this.createBoard(ws.id,'Dashboard exploration',starterDocument()),root=b.document.nodes.find(n=>n.name==='Primary button');this.saveComponent(b.id,b.revision,root.id,'Primary button','component');}
       if(seed)this.db.prepare("INSERT OR REPLACE INTO settings VALUES('initialized','1')").run();
@@ -53,11 +53,16 @@ export class FreegmaStore {
   manifest(id,copy=true){return this.files.validated(this.ref('workspace',id).path,validateWorkspace,copy);}
   stageManifest(w){validateWorkspace(w);this.files.stage(workspacePath(w.id),w);this.register('workspace',w.id,w.id,workspacePath(w.id));for(const c of w.components)this.register('component',c.id,w.id,workspacePath(w.id));for(const a of w.assets)this.register('asset',a.id,w.id,w.id+'/'+a.path);}
   readBoard(id,copy=true){const ref=this.ref('board',id),b=this.files.validated(ref.path,validateBoard,copy);if(b.id!==id||b.workspaceId!==ref.workspace_id)throw error('Board file identity mismatch.',500);return b;}
-  reindex(){
+  reindex({lazyBoards=false}={}){
     this.db.exec('DELETE FROM file_refs');
     for(const entry of fs.readdirSync(this.files.root,{withFileTypes:true})){if(!entry.isDirectory()||!/^workspace_[\w-]+$/.test(entry.name))continue;const file=workspacePath(entry.name);if(!fs.existsSync(this.files.resolve(file)))continue;const w=validateWorkspace(this.files.json(file));if(w.id!==entry.name)throw error('Workspace folder identity mismatch.',500);
       const add=(kind,id,file)=>{if(this.db.prepare('SELECT id FROM file_refs WHERE kind=? AND id=?').get(kind,id))throw error('Duplicate stored '+kind+' ID.',500);this.register(kind,id,w.id,file);};
-      add('workspace',w.id,file);for(const b of w.boards){if(b.path!==`b/${b.id}.free`)throw error('Invalid board reference.',500);const actual=this.files.summary(boardPath(w.id,b.id),validateBoard,boardMeta);if(actual.id!==b.id||actual.workspaceId!==w.id)throw error('Invalid board file identity.',500);add('board',b.id,boardPath(w.id,b.id));}
+      add('workspace',w.id,file);for(const b of w.boards){
+        const relative=boardPath(w.id,b.id);if(b.path!==`b/${b.id}.free`)throw error('Invalid board reference.',500);
+        if(lazyBoards){if(!fs.statSync(this.files.resolve(relative)).isFile())throw error('Invalid board file.',500);}
+        else{const actual=this.files.summary(relative,validateBoard,boardMeta);if(actual.id!==b.id||actual.workspaceId!==w.id)throw error('Invalid board file identity.',500);}
+        add('board',b.id,relative);
+      }
       for(const c of w.components)add('component',c.id,file);for(const a of w.assets){if(!fs.existsSync(this.files.resolve(w.id+'/'+a.path)))throw error('Missing workspace asset: '+a.id,500);add('asset',a.id,w.id+'/'+a.path);}
     }
     for(const workspace of this.workspaces())this.checkWorkspaceParent(workspace.id,workspace.parentId);
@@ -87,7 +92,7 @@ export class FreegmaStore {
   }
   setWorkspaceParent(id,parentId=null){const w=this.manifest(id);this.checkWorkspaceParent(id,parentId);w.parentId=parentId;this.stageManifest(w);for(const child of this.workspaces())this.checkWorkspaceParent(child.id,child.parentId);return this.workspace(id);}
   renameWorkspace(id,name){const w=this.manifest(id);w.name=title(name);this.stageManifest(w);return this.workspace(id);}
-  boards(workspaceId){const ref=this.ref('workspace',workspaceId),w=this.files.summary(ref.path,validateWorkspace,workspaceMeta);return w.boards.map(r=>{const ref=this.ref('board',r.id),b=this.files.summary(ref.path,validateBoard,boardMeta);if(b.workspaceId!==workspaceId)throw error('Board file identity mismatch.',500);return {...b,filePath:this.files.resolve(ref.path)};});}
+  boards(workspaceId){const ref=this.ref('workspace',workspaceId),w=this.files.summary(ref.path,validateWorkspace,workspaceMeta);return w.boards.map(r=>{const ref=this.ref('board',r.id),b=this.files.summary(ref.path,validateBoard,boardMeta);if(b.id!==r.id||b.workspaceId!==workspaceId)throw error('Board file identity mismatch.',500);return {...b,filePath:this.files.resolve(ref.path)};});}
   boardStatus(id){const b=this.readBoard(id,false),palette=this.colors(b.workspaceId);return {id:b.id,revision:b.revision,commentsRevision:b.commentsRevision||0,paletteRevision:palette.revision,themeId:palette.themeId,ownerId:palette.ownerId};}
   getBoard(id){const b=this.readBoard(id,false),palette=this.colors(b.workspaceId),state={designCanUndo:b.cursor>0,designCanRedo:b.history.some(h=>h.seq===b.cursor+1),designUndoAt:b.history.find(h=>h.seq===b.cursor)?.createdAt,designRedoAt:b.history.find(h=>h.seq===b.cursor+1)?.undoneAt};return {id:b.id,workspaceId:b.workspaceId,name:b.name,revision:b.revision,taskRef:b.taskRef,updatedAt:b.updatedAt,document:clone(b.document),comments:clone(b.comments||[]),commentsRevision:b.commentsRevision||0,palette,...state,...colorHistoryState(state,palette),filePath:this.files.resolve(boardPath(b.workspaceId,b.id))};}
   createBoard(workspaceId,name,document={version:1,nodes:[]}){const w=this.manifest(workspaceId);if(w.type==='flows'&&!document.flow&&!document.nodes?.length)document=emptyFlow();if((w.type==='flows')!==!!document.flow)throw error('Design and Flows board types must match their workspace.');validateDocument(document);this.validateAssets(document,workspaceId);const id=newId('board'),b={format:'freegma-board',formatVersion:1,id,workspaceId,name:title(name),document,revision:1,cursor:0,taskRef:'',updatedAt:now(),history:[],comments:[],commentsRevision:0};this.files.stage(boardPath(workspaceId,id),b);this.register('board',id,workspaceId,boardPath(workspaceId,id));w.boards.push({id,path:`b/${id}.free`});this.stageManifest(w);return this.getBoard(id);}
