@@ -1,0 +1,15 @@
+import fs from 'node:fs';import assert from 'node:assert/strict';import {performance} from 'node:perf_hooks';
+import {createFlowLabelIndex} from '../../client/flow-label-index.mjs';
+import {overlayPath,overlayLabelCandidates} from '../../shared/flow-overlay.mjs';
+const folder=process.argv[2]||'logs/label-geometry-20261002',output=process.argv[3]||'labels';
+if(!/^[a-z0-9-]+$/.test(output))throw Error('Simple run label required');
+fs.mkdirSync(folder,{recursive:true});if(fs.existsSync(folder+'/'+output+'.json'))throw Error('Preserve previous measurements.');
+function baseline(entries){const labels=[],out=[];for(const {candidates,width} of entries){const p=candidates.find(p=>!labels.some(r=>Math.abs(r.x-p.x)<(r.width+width)/2+6&&Math.abs(r.y-p.y)<26))||candidates[0];labels.push({...p,width});out.push(p);}return out;}
+function candidate(entries){const index=createFlowLabelIndex();return entries.map(({candidates,width})=>index.place(candidates,width));}
+function fixture(zoom){const lanes=new Map(),bounds=i=>({left:80+(i%12)*380,top:160+Math.floor(i/12)*440,width:240,height:320});return Array.from({length:478},(_,i)=>{const from=i%239,to=from+1,key=from+'_'+to,lane=lanes.get(key)||0;lanes.set(key,lane+1);const geometry=overlayPath(bounds(from),bounds(to),{lane});return {width:Math.min(280,('Continue '+i).length*6+66),candidates:overlayLabelCandidates(geometry).map(p=>({x:p.x*zoom+200,y:p.y*zoom+50}))};});}
+const fixtures={'478 labels · full zoom':fixture(1),'478 labels · fit zoom':fixture(.0564516129),'3,000 labels · spread':Array.from({length:3000},(_,i)=>({width:180,candidates:Array.from({length:5},(_,j)=>({x:(i%50)*420+j*40,y:Math.floor(i/50)*150+j*5}))})),'3,000 labels · overlapping':Array.from({length:3000},(_,i)=>({width:280,candidates:Array.from({length:5},(_,j)=>({x:(i%10)*10+j*20,y:Math.floor(i/10)%10*10+j*5}))}))};
+const results={passed:true,localOnly:true,phase:'Label collision placement only; excludes paths, rendering, saving and network',baselineCommit:'796ae7942de970d4d78fa9d90b050336ccff2ac6',samplesPerVersion:21,fixtures:{}};
+for(const [name,entries] of Object.entries(fixtures)){assert.deepEqual(candidate(entries),baseline(entries));for(let i=0;i<5;i++){baseline(entries);candidate(entries);}const samples={baseline:[],candidate:[]};for(let i=0;i<21;i++)for(const [key,fn] of (i%2?[['candidate',candidate],['baseline',baseline]]:[['baseline',baseline],['candidate',candidate]])){const start=performance.now();for(let j=0;j<10;j++)fn(entries);samples[key].push((performance.now()-start)/10);}const median=key=>[...samples[key]].sort((a,b)=>a-b)[10];results.fixtures[name]={labels:entries.length,exactPlacement:true,baselineMs:median('baseline'),candidateMs:median('candidate'),samples};}
+fs.writeFileSync(folder+'/fixture-candidates.json',JSON.stringify(fixtures));fs.writeFileSync(folder+'/'+output+'.json',JSON.stringify(results,null,2));console.log(JSON.stringify(Object.fromEntries(Object.entries(results.fixtures).map(([name,r])=>[name,{baselineMs:r.baselineMs,candidateMs:r.candidateMs}]))));
+
+
