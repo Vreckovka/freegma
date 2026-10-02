@@ -1,0 +1,12 @@
+import fs from 'node:fs';import path from 'node:path';import {pathToFileURL} from 'node:url';import {createHash} from 'node:crypto';import {performance} from 'node:perf_hooks';import assert from 'node:assert/strict';
+const args=process.argv.slice(2),value=k=>{const i=args.indexOf(k);return i<0?undefined:args[i+1];},modulePath=path.resolve(value('--module')||'server/instance-locks-store.mjs'),output=path.resolve(value('--output'));
+if(fs.existsSync(output))throw Error('Preserve previous measurements; use a new output file.');
+const {instanceLockStoreMethods:methods}=await import(pathToFileURL(modulePath)),context={...methods};
+const source=JSON.parse(fs.readFileSync('logs/performance-20261001/fixture/workspaces/workspace_af537e40cb894df8/b/board_974d7e1fe2584a3b.free','utf8')).document,maximum={version:1,nodes:Array.from({length:4},(_,batch)=>source.nodes.map(n=>({...n,id:'copy_'+batch+'_'+n.id,parentId:n.parentId?'copy_'+batch+'_'+n.parentId:null,x:n.parentId?n.x:n.x+batch*20000}))).flat()},hash=v=>createHash('sha256').update(JSON.stringify(v)).digest('hex'),metrics={};
+for(const [key,document,id,n]of [['design2480',source,'screen_0_title',25],['design9920',maximum,'copy_0_screen_0_title',15]]){
+ const before=hash(document),operations=[{op:'update',id,patch:{text:'Prepared edit'}}];for(let i=0;i<3;i++)context.lockedOperations(document,operations);
+ const samples=[];let result;for(let i=0;i<n;i++){const start=performance.now();result=context.lockedOperations(document,operations);samples.push(performance.now()-start);}
+ assert.equal(hash(document),before,'Preparing an edit cannot mutate its input.');assert.equal(result.nodes.find(node=>node.id===id).text,'Prepared edit');const sorted=[...samples].sort((a,b)=>a-b);metrics[key]={layers:document.nodes.length,warmups:3,n,medianMs:sorted[Math.floor(n/2)],p95Ms:sorted[Math.ceil(n*.95)-1],samples,digest:hash(result)};console.log(key,JSON.stringify({...metrics[key],samples:undefined}));
+}
+const baselinePath=value('--baseline');if(baselinePath){const before=JSON.parse(fs.readFileSync(baselinePath));for(const key of Object.keys(metrics)){assert.equal(metrics[key].digest,before.metrics[key].digest);assert.equal(metrics[key].n,before.metrics[key].n);}}
+fs.mkdirSync(path.dirname(output),{recursive:true});fs.writeFileSync(output,JSON.stringify({date:new Date().toISOString(),localOnly:true,modulePath,scope:'Single ordinary edit preparation CPU time with instance-lock checks; excludes file saving, browser latency and Vercel.',metrics},null,2),{flag:'wx'});

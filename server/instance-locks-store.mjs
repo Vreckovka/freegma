@@ -21,9 +21,11 @@ export const instanceLockStoreMethods={
     }
   },
   lockedOperations(document,operations){
-    let doc=clone(document);const addedInstances=new Set();
+    // Ordinary operations already produce an independent validated copy.
+    // Override expansion is the only preparation step that mutates a layer first.
+    let doc=document;const addedInstances=new Set();
     if(!Array.isArray(operations)||!operations.length||operations.length>1000)return applyOperations(doc,operations);
-    for(const original of operations){let op=original;const context=instanceContext(doc.nodes,op.id||op.node?.parentId);
+    for(const original of operations){let op=original;if(op.op==='override'&&doc===document)doc=clone(doc);const context=instanceContext(doc.nodes,op.id||op.node?.parentId);
       if(op.op==='override'){
         if(!context||!isOverrideProperty(op.property)||typeof op.enabled!=='boolean')throw Object.assign(Error('Select one valid property of a linked instance.'),{status:400});
         const node=doc.nodes.find(n=>n.id===op.id),c=this.component(context.id),master=c.definition.nodes.find(n=>n.id===node.sourceId);if(!master)throw Object.assign(Error('This layer has no source property. Edit the main component or detach the instance.'),{status:400});
