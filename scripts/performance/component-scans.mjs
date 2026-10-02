@@ -1,0 +1,19 @@
+import fs from 'node:fs';import path from 'node:path';import {pathToFileURL} from 'node:url';import {performance} from 'node:perf_hooks';import {createHash} from 'node:crypto';import assert from 'node:assert/strict';
+const args=process.argv.slice(2),value=k=>{const i=args.indexOf(k);return i<0?undefined:args[i+1];};
+const root=path.resolve(value('--root')||'logs/component-scans-20261002'),output=path.resolve(value('--output')||path.join(root,'current.json')),source=path.resolve(value('--module')||'server/store.mjs'),data=output.slice(0,-5)+'-data',fixtureRoot=path.join(root,'fixture');
+if(fs.existsSync(output)||fs.existsSync(data))throw Error('Preserve existing benchmark outputs.');
+const fixture=JSON.parse(fs.readFileSync(path.join(fixtureRoot,'fixture.json'))),{FreegmaStore}=await import(pathToFileURL(source));fs.cpSync(fixtureRoot,data,{recursive:true});
+const store=new FreegmaStore(path.join(data,'freegma.sqlite'),{seed:false,storageRoot:path.join(data,'workspaces')}),hash=v=>createHash('sha256').update(JSON.stringify(v)).digest('hex');
+const stats=s=>{const times=s.map(x=>x.ms).sort((a,b)=>a-b);return {medianMs:times[Math.floor(times.length/2)],p95Ms:times[Math.ceil(times.length*.95)-1],n:s.length};};
+try{
+ const unchanged=store.readBoard(fixture.designBoard),unchangedHash=hash(unchanged),reference=store.componentReference(fixture.instanceBoard,fixture.instanceNode),referenceHash=hash(reference),samples={reference:[],masterSave:[],masterUndo:[],masterRedo:[]};
+ assert.equal(reference.usageCount,1);assert.equal(reference.master.boardId,fixture.masterBoard);
+ for(let i=0;i<10;i++){const start=performance.now(),r=store.componentReference(fixture.instanceBoard,fixture.instanceNode);samples.reference.push({ms:performance.now()-start});assert.equal(hash(r),referenceHash);}
+ let board=store.getBoard(fixture.masterBoard);
+ for(let i=0;i<6;i++){const start=performance.now();board=store.mutate(board.id,board.revision,[{op:'update',id:'scan_master',patch:{radius:20+i}}],'Measured component edit');samples.masterSave.push({ms:performance.now()-start});assert.equal(store.getBoard(fixture.instanceBoard).document.nodes.find(n=>n.id===fixture.instanceNode).radius,20+i);}
+ for(const [direction,key]of [['undo','masterUndo'],['redo','masterRedo']])for(let i=0;i<6;i++){const start=performance.now();board=store.travel(board.id,board.revision,direction,board.palette.revision);samples[key].push({ms:performance.now()-start});assert.equal(store.getBoard(fixture.instanceBoard).document.nodes.find(n=>n.id===fixture.instanceNode).radius,board.document.nodes[0].radius);}
+ assert.equal(hash(store.readBoard(fixture.designBoard)),unchangedHash,'Non-instance board and all its history remain exact.');
+ const cleanHistory=h=>h.map(({createdAt,undoneAt,...e})=>e),result={localOnly:true,source,fixture,metrics:Object.fromEntries(Object.entries(samples).map(([k,v])=>[k,stats(v)])),samples,referenceDigest:referenceHash,unchangedDigest:unchangedHash,masterDocumentDigest:hash(board.document),instanceDocumentDigest:hash(store.getBoard(fixture.instanceBoard).document),masterHistoryDigest:hash(cleanHistory(store.readBoard(board.id).history)),note:'Local store timings; validated read-only scans across 22 boards including a 2,480-layer/12-history board. Warm reference read (10 samples), six master edits and six Undo/Redo actions. Timing excludes output hash checks; no Vercel traffic.'};
+ const baseline=value('--baseline');if(baseline){const old=JSON.parse(fs.readFileSync(baseline));assert.deepEqual(old.fixture,fixture);for(const key of ['referenceDigest','unchangedDigest','masterDocumentDigest','instanceDocumentDigest','masterHistoryDigest'])assert.equal(result[key],old[key],key);}
+ fs.writeFileSync(output,JSON.stringify(result,null,2));console.log(JSON.stringify({metrics:result.metrics,referenceDigest:result.referenceDigest,unchangedDigest:result.unchangedDigest}));
+}finally{store.close();}

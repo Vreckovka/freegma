@@ -22,8 +22,10 @@ export const componentStoreMethods={
     const previous=this.syncingComponents;this.syncingComponents=true;
     try{
       for(const ws of this.workspaces().filter(w=>this.workspaceAncestors(w.id).some(parent=>parent.id===owner))){
-        for(const entry of this.manifest(ws.id).boards){
-          const raw=this.readBoard(entry.id);if(!raw.document.nodes.some(n=>n.componentId===id))continue;
+        for(const entry of this.manifest(ws.id,false).boards){
+          // Inspect validated snapshots without copying unrelated Undo history.
+          // Affected boards still receive independent before/after documents.
+          const raw=this.readBoard(entry.id,false);if(!raw.document.nodes.some(n=>n.componentId===id))continue;
           const b=this.getBoard(entry.id),doc=clone(b.document);
           for(const instance of [...doc.nodes.filter(n=>n.componentId===id)]){
             const old=descendants(doc.nodes,instance.id),oldMap=new Map(old.filter(n=>n.sourceId).map(n=>[n.sourceId,n]));
@@ -47,7 +49,7 @@ export const componentStoreMethods={
     const b=this.getBoard(boardId),context=componentContext(b.document.nodes,nodeId);if(!context)return null;
     const c=this.component(context.id),owner=this.workspace(c.workspace_id),usages=[];let master=null;
     for(const ws of this.workspaces().filter(w=>this.workspaceAncestors(w.id).some(p=>p.id===owner.id))){
-      for(const entry of this.manifest(ws.id).boards){const board=this.readBoard(entry.id);
+      for(const entry of this.manifest(ws.id,false).boards){const board=this.readBoard(entry.id,false);
         for(const n of board.document.nodes){const location={workspaceId:ws.id,workspaceName:ws.name,boardId:board.id,boardName:board.name,nodeId:n.id,nodeName:n.name,url:`/w/${ws.id}/b/${board.id}`};
           if(n.componentMasterId===c.id&&ws.id===owner.id)master=location;
           if(n.componentId===c.id)usages.push(location);
