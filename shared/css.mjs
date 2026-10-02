@@ -32,10 +32,10 @@ allowed.add('flex-wrap');
 export const CSS_PROPERTIES=[...allowed].sort();
 function declarations(style){return Object.fromEntries(Object.entries(style).filter(([,v])=>v!=null).map(([k,v])=>[cssName(k),typeof v==='number'&&!unitless.has(k)?`${v}px`:String(v)]));}
 export function cssForDocument(document,nodeId=null){
-  const nodes=nodeId?subtree(document,nodeId).nodes:document.nodes,roots=nodes.filter(n=>!nodes.some(p=>p.id===n.parentId));
+  const nodes=nodeId?subtree(document,nodeId).nodes:document.nodes,byId=new Map(nodes.map(n=>[n.id,n])),roots=nodes.filter(n=>!byId.has(n.parentId)),rootSet=new Set(roots);
   const minX=Math.min(0,...roots.map(n=>nodeId?0:n.x)),minY=Math.min(0,...roots.map(n=>nodeId?0:n.y));
   const rules=new Map();
-  for(const n of nodes){const parent=nodes.find(p=>p.id===n.parentId),style=layerStyle(n,parent,roots.includes(n));if(roots.includes(n)){if(!n.cssOverrides?.left)style.left=nodeId?0:n.x-minX;if(!n.cssOverrides?.top)style.top=nodeId?0:n.y-minY;}rules.set(n.id,declarations(style));}
+  for(const n of nodes){const parent=byId.get(n.parentId),root=rootSet.has(n),style=layerStyle(n,parent,root);if(root){if(!n.cssOverrides?.left)style.left=nodeId?0:n.x-minX;if(!n.cssOverrides?.top)style.top=nodeId?0:n.y-minY;}rules.set(n.id,declarations(style));}
   return {nodes,rules,css:nodes.map(n=>`/* ${n.name.replace(/\*\//g,'').replace(/[\r\n]/g,' ')} */\n.fg-${n.id} {\n${Object.entries(rules.get(n.id)).map(([k,v])=>`  ${k}: ${v};`).join('\n')}\n}`).join('\n\n')+'\n'};
 }
 // Small, bounded grammar: explicit layer rules and declarations, not executable JSX.

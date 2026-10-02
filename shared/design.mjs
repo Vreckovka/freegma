@@ -3,7 +3,7 @@ import {validateFlow} from './flows.mjs';
 import {validateOverlay,pruneOverlay} from './flow-overlay.mjs';
 import {validateBindings,detachPatchedColors,readPath} from './colors.mjs';
 import {validateCssOverrides,mergeCss,clearCssForPatch,cssForDocument} from './css.mjs';
-export const VERSION = "0.1.45";
+export const VERSION = "0.1.46";
 export const TYPES = ["frame", "group", "rectangle", "ellipse", "text", "image", "icon", "vector"];
 export const DEFAULTS = { x:0, y:0, width:240, height:160, rotation:0, fill:"#ffffff", color:"#172033", stroke:"#dfe4ec", strokeWidth:0, radius:0, opacity:1, fontSize:16, fontWeight:400, fontFamily:"Inter, system-ui, sans-serif", lineHeight:1.5, textAlign:"left", layout:"free", gap:16, paddingTop:0, paddingRight:0, paddingBottom:0, paddingLeft:0, marginTop:0, marginRight:0, marginBottom:0, marginLeft:0, align:"start", justify:"start", sizing:"fixed", visible:true, locked:false, clip:false, text:"", src:"", icon:"sparkles" };
 const numeric = new Set(["x","y","width","height","rotation","strokeWidth","radius","opacity","fontSize","fontWeight","lineHeight","gap","paddingTop","paddingRight","paddingBottom","paddingLeft","marginTop","marginRight","marginBottom","marginLeft"]);
@@ -109,13 +109,15 @@ export function reactComponentName(name) {
 export function generateReact(document,rootId=null,name) {
   validateDocument(document);
   const exportNodes=rootId?subtree(document,rootId).nodes:document.nodes;
-  const roots=exportNodes.filter(n=>!exportNodes.some(p=>p.id===n.parentId));
+  const ids=new Set(exportNodes.map(n=>n.id)),childrenByParent=new Map();
+  for(const n of exportNodes){let children=childrenByParent.get(n.parentId);if(!children)childrenByParent.set(n.parentId,children=[]);children.push(n);}
+  const roots=exportNodes.filter(n=>!ids.has(n.parentId)),rootSet=new Set(roots);
   const componentName=reactComponentName(name??(rootId?roots[0]?.name:null));
   let cssMode=false;
-  const render=(n,parent,level)=>{const style=layerStyle(n,parent,roots.includes(n));if(roots.includes(n)){if(!n.cssOverrides?.left)style.left=rootId?0:n.x-minX;if(!n.cssOverrides?.top)style.top=rootId?0:n.y-minY;}
+  const render=(n,parent,level)=>{const root=rootSet.has(n),style=layerStyle(n,parent,root);if(root){if(!n.cssOverrides?.left)style.left=rootId?0:n.x-minX;if(!n.cssOverrides?.top)style.top=rootId?0:n.y-minY;}
     const indent="  ".repeat(level),attrs=`data-freegma-id=${JSON.stringify(n.id)} `+(cssMode?`className="fg-${n.id}"`:`style={${JSON.stringify(style)}}`);
     if(n.type==="image")return `${indent}<img ${attrs} src={${JSON.stringify(n.src)}} alt={${JSON.stringify(n.name)}} />`;
-    const children=exportNodes.filter(c=>c.parentId===n.id).map(c=>render(c,n,level+1)).join("\n");
+    const children=(childrenByParent.get(n.id)||[]).map(c=>render(c,n,level+1)).join("\n");
     const text=n.type==="text"?`{${JSON.stringify(n.text)}}`:n.type==="vector"?`<svg width="100%" height="100%" viewBox={${JSON.stringify(n.viewBox.join(' '))}} preserveAspectRatio="none" role="img" aria-label={${JSON.stringify(n.name)}}>${n.paths.map(p=>`<path d={${JSON.stringify(p.d)}} fill={${JSON.stringify(p.fill)}} stroke={${JSON.stringify(p.stroke)}} strokeWidth={${p.strokeWidth}} opacity={${p.opacity}} strokeLinecap="round" strokeLinejoin="round" />`).join('')}</svg>`:n.type==="icon"?`<svg width="100%" height="100%" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" role="img" aria-label={${JSON.stringify(n.icon)}}><path d={${JSON.stringify(ICON_PATHS[n.icon])}} /></svg>`:"";
     return `${indent}<div ${attrs}>${text}${children?"\n"+children+"\n"+indent:""}</div>`;};
   const minX=Math.min(0,...roots.map(n=>rootId?0:n.x)),minY=Math.min(0,...roots.map(n=>rootId?0:n.y));
