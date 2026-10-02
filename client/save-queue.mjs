@@ -2,8 +2,14 @@
 // newer actions: they are replayed over that reply before it is published.
 import {createStepCache,applyCachedStep,wireAction} from './step-cache.mjs';
 export const SAVE_LIMITS={quietMs:500,maxWaitMs:2000,maxActions:25,maxOperations:1000,maxBytes:256*1024,maxPendingActions:250,maxPendingBytes:8*1024*1024};
-const bytes=value=>new TextEncoder().encode(JSON.stringify(Array.isArray(value)?value.map(wireAction):wireAction(value))).length;
 export function createSaveQueue({getBoard,apply,send,onBoard,onState=()=>{},canPublish=()=>true,onError=()=>{},now=()=>Date.now(),setTimer=setTimeout,clearTimer=clearTimeout,id=()=>crypto.randomUUID(),limits=SAVE_LIMITS}){
+ // Completed actions are independently owned and unchanged while pending.
+ // Count each wire action once; array separators have exactly one UTF-8 byte.
+ const weights=new WeakMap(),bytes=value=>{
+  if(Array.isArray(value))return 2+Math.max(0,value.length-1)+value.reduce((n,a)=>n+bytes(a),0);
+  if(!weights.has(value))weights.set(value,new TextEncoder().encode(JSON.stringify(wireAction(value))).length);
+  return weights.get(value);
+ };
  let base=null,view=null,pending=[],flight=null,failed=null,error=null,timer=null,firstAt=null,saved=0,total=0,deferred=false;
  const steps=createStepCache({now});const applyAction=(board,action)=>action.kind==='history'?applyCachedStep(board,action):apply(board,action);
  const count=()=>pending.length;
