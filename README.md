@@ -167,6 +167,8 @@ The original timing baseline remains unchanged. A size metric added later names 
 
 Use `yarn mcp` or configure your agent with an absolute Node executable and `server/mcp.mjs`. HTTP and MCP share storage and optimistic revisions.
 
+For smaller AI context, use `freegma_get_board` with `view:"outline"` to find IDs, then `view:"nodes", nodeId:"frame-id"` to inspect only that frame. Reads are paginated and retain revision checks. Board mutations accept `responseMode:"compact"` for a small revision receipt instead of returning every layer again. Existing full responses remain available. The local comparison table now includes MCP payload tokens and bytes; see [MCP workflow and benchmark](docs/MCP-PERFORMANCE.md).
+
 ```json
 {"mcpServers":{"freegma":{"command":"/absolute/path/to/node","args":["/absolute/path/to/freegma/server/mcp.mjs"]}}}
 ```
