@@ -10,12 +10,13 @@ import {buildRoot} from './paths.mjs';
 import {publicSettings,requestOrigin} from './public-access.mjs';
 import {packFree} from './free-format.mjs';
 import {brandAssets} from './brand-assets.mjs';
+import {sendText,editorAssets} from './text-response.mjs';
 export const defaultBuild=buildRoot;
 export function embedOrigins(value=process.env.FREEGMA_EMBED_ORIGINS||'http://127.0.0.1:4320,http://127.0.0.1:4318,http://localhost:4320'){return value.split(',').filter(Boolean).map(v=>{const u=new URL(v.trim());if(!['http:','https:'].includes(u.protocol)||u.origin!==v.trim())throw Error('Embedding origins must be HTTP(S) origins without paths.');return u.origin;});}
-const json=(res,status,data)=>{res.writeHead(status,{'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store'});res.end(JSON.stringify(data));};
 export function createServer({store=new FreegmaStore(),build=process.env.FREEGMA_BUILD||defaultBuild,access=publicSettings()}={}){
-  const downloads=new Map(),parents=embedOrigins(),serveBrand=brandAssets(build);
+  const downloads=new Map(),parents=embedOrigins(),serveBrand=brandAssets(build),serveEditor=editorAssets(build);
   const server=http.createServer(async(req,res)=>{
+    const json=(res,status,data)=>sendText(req,res,status,JSON.stringify(data),{'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store'});
     res.setHeader('X-Content-Type-Options','nosniff');
     try{
       const settings=access();
@@ -26,8 +27,7 @@ export function createServer({store=new FreegmaStore(),build=process.env.FREEGMA
       if(sourceDownload&&req.method==='GET'){
         const file=downloads.get(sourceDownload[1]);
         if(!file||file.expires<Date.now()){downloads.delete(sourceDownload[1]);return json(res,404,{error:'Download expired. Click Download again.'});}
-        res.writeHead(200,{'Content-Type':file.filename.endsWith('.css')?'text/css; charset=utf-8':'text/javascript; charset=utf-8','Content-Disposition':`attachment; filename="${file.filename}"`,'Cache-Control':'no-store'});
-        return res.end(file.content);
+        return sendText(req,res,200,file.content,{'Content-Type':file.filename.endsWith('.css')?'text/css; charset=utf-8':'text/javascript; charset=utf-8','Content-Disposition':`attachment; filename="${file.filename}"`,'Cache-Control':'no-store'});
       }
       if(route==='/api/health')return json(res,200,{ok:true,application:'Freegma',version:VERSION});
       const portable=route.match(/^\/api\/files\/(workspace|board)\/([\w-]+)$/);
@@ -77,7 +77,7 @@ export function createServer({store=new FreegmaStore(),build=process.env.FREEGMA
       if(route.startsWith('/api/'))return json(res,404,{error:'Endpoint not found.'});
       const file=['/app.js','/app.css','/theme.js'].includes(route)?path.join(build,route.slice(1)):path.join(build,'index.html');
       if(!fs.existsSync(file))return json(res,503,{error:'Build Freegma first: node freegma/scripts/build.mjs'});
-      res.writeHead(200,{'Content-Type':file.endsWith('.js')?'text/javascript; charset=utf-8':file.endsWith('.css')?'text/css; charset=utf-8':'text/html; charset=utf-8','Cache-Control':'no-cache'});if(req.method==='HEAD')return res.end();fs.createReadStream(file).pipe(res);
+      return await serveEditor(req,res,route);
     }catch(e){json(res,e.status||500,{error:e.message});}
   });return server;
 }

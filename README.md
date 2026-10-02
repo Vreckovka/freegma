@@ -169,6 +169,8 @@ Use `yarn mcp` or configure your agent with an absolute Node executable and `ser
 
 For smaller AI context, use `freegma_get_board` with `view:"outline"` to find IDs, then `view:"nodes", nodeId:"frame-id"` to inspect only that frame. Reads are paginated and retain revision checks. Board mutations accept `responseMode:"compact"` for a small revision receipt instead of returning every layer again. Existing full responses remain available. The local comparison table now includes MCP payload tokens and bytes; see [MCP workflow and benchmark](docs/MCP-PERFORMANCE.md).
 
+Large HTTP responses use negotiated compression. Unchanged editor files can be revalidated without downloading their bodies again; live API/save responses stay fresh. See the [local network benchmark and caching behavior](docs/NETWORK-PERFORMANCE.md).
+
 ```json
 {"mcpServers":{"freegma":{"command":"/absolute/path/to/node","args":["/absolute/path/to/freegma/server/mcp.mjs"]}}}
 ```

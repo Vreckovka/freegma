@@ -33,8 +33,9 @@ export function requestOrigin(req,allowed=[]) {
   const candidate='https://'+forwarded;
   return allowed.includes(origin)?origin:allowed.includes(candidate)?candidate:allowed[0];
 }
+export const EDITOR_ROUTE='/(app\\.js|app\\.css|theme\\.js)';
 export function proxyBuildConfig(upstream) {
   const url=new URL(upstream||'');
   if(url.protocol!=='https:'||url.origin!==upstream||url.username||url.password)throw Error('FREEGMA_UPSTREAM must be an HTTPS origin without a path or credentials.');
-  return {version:3,routes:[{src:BRAND_ROUTE,dest:url.origin+'/$1',headers:{'Cache-Control':'public, max-age=3600'}},{src:'/(.*)',dest:url.origin+'/$1',headers:{'Cache-Control':'no-store'}}]};
+  return {version:3,routes:[{src:BRAND_ROUTE,dest:url.origin+'/$1',headers:{'Cache-Control':'public, max-age=3600'}},{src:EDITOR_ROUTE,dest:url.origin+'/$1',headers:{'Cache-Control':'no-cache'}},{src:'/(.*)',dest:url.origin+'/$1',headers:{'Cache-Control':'no-store'}}]};
 }
