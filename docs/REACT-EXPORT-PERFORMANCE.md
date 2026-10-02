@@ -1,5 +1,7 @@
 React and CSS exports index layer IDs, roots and child lists once per export. Root and sibling order still follow the document's stored order; selected exports retain their existing subtree rules. This avoids repeatedly scanning every layer while rendering each JSX element and CSS rule.
 
+The JSX pass that uses CSS classes skips inline style calculations because it never includes those objects in its output. Inline JSX and the separate stylesheet still calculate and retain their full styles.
+
 The local benchmark uses the original 2,480-layer design fixture, a 9,920-layer copy, reversed storage order, a selected frame and an empty board. It preserves exact output hashes, including filenames, inline JSX, separate CSS, asset references and text. Only the generated version comment is normalized when comparing releases.
 
 To compare against a frozen source directory:
