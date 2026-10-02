@@ -11,10 +11,11 @@ import {publicSettings,requestOrigin} from './public-access.mjs';
 import {packFree} from './free-format.mjs';
 import {brandAssets} from './brand-assets.mjs';
 import {sendText,editorAssets} from './text-response.mjs';
+import {boardResponses} from './board-response.mjs';
 export const defaultBuild=buildRoot;
 export function embedOrigins(value=process.env.FREEGMA_EMBED_ORIGINS||'http://127.0.0.1:4320,http://127.0.0.1:4318,http://localhost:4320'){return value.split(',').filter(Boolean).map(v=>{const u=new URL(v.trim());if(!['http:','https:'].includes(u.protocol)||u.origin!==v.trim())throw Error('Embedding origins must be HTTP(S) origins without paths.');return u.origin;});}
 export function createServer({store=new FreegmaStore(),build=process.env.FREEGMA_BUILD||defaultBuild,access=publicSettings()}={}){
-  const downloads=new Map(),parents=embedOrigins(),serveBrand=brandAssets(build),serveEditor=editorAssets(build);
+  const downloads=new Map(),parents=embedOrigins(),serveBrand=brandAssets(build),serveEditor=editorAssets(build),serveBoard=boardResponses(store);
   const server=http.createServer(async(req,res)=>{
     const json=(res,status,data)=>sendText(req,res,status,JSON.stringify(data),{'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store'});
     res.setHeader('X-Content-Type-Options','nosniff');
@@ -72,7 +73,7 @@ export function createServer({store=new FreegmaStore(),build=process.env.FREEGMA
       const reference=route.match(/^\/api\/boards\/([\w-]+)\/components\/([\w-]+)$/);
       if(reference&&req.method==='GET')return json(res,200,store.componentReference(reference[1],reference[2]));
       const b=route.match(/^\/api\/boards\/([\w-]+)(\/operations|\/document|\/history|\/undo|\/redo|\/export|\/status)?$/);
-      if(b){if(b[2]==='/status'&&req.method==='GET')return json(res,200,store.boardStatus(b[1]));if(!b[2]&&req.method==='GET')return json(res,200,store.getBoard(b[1]));if(!b[2]&&req.method==='PATCH')return json(res,200,store.meta(b[1],body.expectedRevision,body));if(b[2]==='/operations'&&req.method==='POST')return json(res,200,store.mutate(b[1],body.expectedRevision,body.operations,body.label));if(b[2]==='/document'&&req.method==='PUT')return json(res,200,store.replace(b[1],body.expectedRevision,body.document));if(b[2]==='/history'&&req.method==='GET')return json(res,200,{history:store.history(b[1])});if(['/undo','/redo'].includes(b[2])&&req.method==='POST')return json(res,200,store.travel(b[1],body.expectedRevision,b[2].slice(1),body.expectedPaletteRevision));if(b[2]==='/export'&&req.method==='GET')return json(res,200,store.export(b[1],url.searchParams.get('nodeId'),url.searchParams.get('name')??undefined));}
+      if(b){if(b[2]==='/status'&&req.method==='GET')return json(res,200,store.boardStatus(b[1]));if(!b[2]&&req.method==='GET')return serveBoard(req,res,b[1]);if(!b[2]&&req.method==='PATCH')return json(res,200,store.meta(b[1],body.expectedRevision,body));if(b[2]==='/operations'&&req.method==='POST')return json(res,200,store.mutate(b[1],body.expectedRevision,body.operations,body.label));if(b[2]==='/document'&&req.method==='PUT')return json(res,200,store.replace(b[1],body.expectedRevision,body.document));if(b[2]==='/history'&&req.method==='GET')return json(res,200,{history:store.history(b[1])});if(['/undo','/redo'].includes(b[2])&&req.method==='POST')return json(res,200,store.travel(b[1],body.expectedRevision,b[2].slice(1),body.expectedPaletteRevision));if(b[2]==='/export'&&req.method==='GET')return json(res,200,store.export(b[1],url.searchParams.get('nodeId'),url.searchParams.get('name')??undefined));}
       if(route==='/api/tools'&&req.method==='POST')return json(res,200,callTool(store,body.name,body.arguments));
       if(route.startsWith('/api/'))return json(res,404,{error:'Endpoint not found.'});
       const file=['/app.js','/app.css','/theme.js'].includes(route)?path.join(build,route.slice(1)):path.join(build,'index.html');

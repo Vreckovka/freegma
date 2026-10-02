@@ -9,11 +9,14 @@ export function acceptsGzip(header=''){
  return (values.find(v=>v.name==='gzip')??values.find(v=>v.name==='*'))?.q>0;
 }
 async function compressed(bytes){try{const result=await zip(bytes,{level:3});return result.length<bytes.length?result:null;}catch{return null;}}
-export async function sendText(req,res,status,body,headers){
- const bytes=Buffer.isBuffer(body)?body:Buffer.from(body),packed=bytes.length>=threshold&&acceptsGzip(req.headers['accept-encoding'])?await compressed(bytes):null;
+export const prepareText=body=>({bytes:Buffer.isBuffer(body)?body:Buffer.from(body)});
+export async function sendPreparedText(req,res,status,entry,headers){
+ const {bytes}=entry;let packed=null;
+ if(bytes.length>=threshold&&acceptsGzip(req.headers['accept-encoding'])){entry.packed??=compressed(bytes);packed=await entry.packed;}
  if(res.destroyed)return;
  res.writeHead(status,{...headers,Vary:'Accept-Encoding','Content-Length':(packed||bytes).length,...(packed?{'Content-Encoding':'gzip'}:{})});res.end(req.method==='HEAD'?undefined:packed||bytes);
 }
+export const sendText=(req,res,status,body,headers)=>sendPreparedText(req,res,status,prepareText(body),headers);
 const matches=(header,etag)=>String(header||'').split(',').some(tag=>tag.trim()==='*'||tag.trim().replace(/^W\//,'')===etag);
 // Four build resources, shared across deep board URLs. Metadata invalidates the cache
 // when a build replaces files; gzip work is shared between simultaneous requests.
