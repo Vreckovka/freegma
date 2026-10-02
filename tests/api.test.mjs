@@ -17,3 +17,29 @@ test('board loading shares a read, retries one transient failure, evicts failure
  let failures=0;const rejected=createBoardLoader(async()=>{failures++;throw Object.assign(new Error('Unavailable'),{status:503});});await assert.rejects(rejected.load('same'),/Unavailable/);assert.equal(failures,2);assert.equal(rejected.size,0);await assert.rejects(rejected.load('same'));assert.equal(failures,4);
  let invalid=0;const denied=createBoardLoader(async()=>{invalid++;throw Object.assign(new Error('Not found'),{status:404});});await assert.rejects(denied.load('missing'),/Not found/);assert.equal(invalid,1);
 });
+
+test('retry replaces a stuck same-board read immediately, even if transport ignores cancellation',async()=>{
+ const flights=[],loader=createBoardLoader((id,options)=>new Promise(resolve=>flights.push({id,options,resolve})));
+ const old=loader.load('same'),rejected=assert.rejects(old,e=>e.name==='AbortError');
+ const fresh=loader.load('same',{restart:true});await rejected;
+ assert.equal(flights.length,2);assert.equal(flights[0].options.signal.aborted,true);
+ assert.notEqual(flights[0].options.requestId,flights[1].options.requestId);
+ flights[0].resolve({id:'same',revision:1});await new Promise(r=>setImmediate(r));
+ assert.equal(loader.size,1);assert.equal(loader.load('same'),fresh);
+ flights[1].resolve({id:'same',revision:2});assert.equal((await fresh).revision,2);assert.equal(loader.size,0);
+});
+
+test('navigation cancels obsolete reads without a retry; transient retry uses a new request identity',async()=>{
+ const calls=[],loader=createBoardLoader((id,options)=>{calls.push({id,options});return id==='old'?new Promise(()=>{}):Promise.resolve({id});});
+ const old=loader.load('old'),rejected=assert.rejects(old,e=>e.name==='AbortError');
+ const next=loader.load('next');loader.cancelExcept('next');await rejected;await next;
+ assert.equal(calls.length,2);assert.equal(loader.size,0);
+ const attempts=[],retry=createBoardLoader(async(id,options)=>{attempts.push(options);if(attempts.length===1)throw Object.assign(Error('Interrupted'),{readTimeout:true});return {id};});
+ await retry.load('same');assert.notEqual(attempts[0].requestId,attempts[1].requestId);
+});
+
+test('API reads bypass browser cache while writes keep their existing fetch policy',async()=>{
+ const options=[],api=createApi(async(url,o)=>{options.push(o);return ok({id:'same'});});
+ await api('/same','GET',undefined,{cache:'force-cache'});await api('/same','POST',{name:'Changed'});
+ assert.equal(options[0].cache,'no-store');assert.equal(options[1].cache,undefined);
+});
