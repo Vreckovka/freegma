@@ -1,3 +1,4 @@
+import {BRAND_ROUTE} from '../shared/brand-assets.mjs';
 import fs from 'node:fs';
 export function origins(value='') {
   return value.split(',').map(v=>v.trim()).filter(Boolean).map(value=>{
@@ -35,5 +36,5 @@ export function requestOrigin(req,allowed=[]) {
 export function proxyBuildConfig(upstream) {
   const url=new URL(upstream||'');
   if(url.protocol!=='https:'||url.origin!==upstream||url.username||url.password)throw Error('FREEGMA_UPSTREAM must be an HTTPS origin without a path or credentials.');
-  return {version:3,routes:[{src:'/(.*)',dest:url.origin+'/$1',headers:{'Cache-Control':'no-store'}}]};
+  return {version:3,routes:[{src:BRAND_ROUTE,dest:url.origin+'/$1',headers:{'Cache-Control':'public, max-age=3600'}},{src:'/(.*)',dest:url.origin+'/$1',headers:{'Cache-Control':'no-store'}}]};
 }

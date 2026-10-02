@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="docs/media/mark.svg" width="64" alt="Freegma" />
+<a href="https://freegma-theta.vercel.app"><img src="client/public/logo.svg" width="64" height="68" alt="Freegma — the purple studio mark" /></a>
 
 # Freegma
 
@@ -219,12 +219,12 @@ Each board keeps its own background save queue. You can switch boards while comp
 
 ### Two flow views, shared editing tools
 
-Use a **Flows workspace** for journeys between dashboards. Enable **Flow layer** on a design board for navigation inside that dashboard. Both support connector dots, Straight / If / Repeat arrows, Start / Decision / End points, trigger events, hover details, movable endpoints and curve handles, and route pivots.
+Use a **Flows workspace** for journeys between dashboards. Enable **Flow layer** on a design board for navigation inside that dashboard. Both support connector dots, Straight / If / Repeat arrows, Start / Decision / End points, trigger events, click-only details, movable endpoints and curve handles, and route pivots.
 
 - **Linked frames:** choose **Live frame · locked master** to render the real design at its actual size, or **Context card** for a compact preview with a title and explanation. Existing cards keep their display. Both reference the original frame; edit its content in the source workspace and references refresh. Moving a live frame by its caption changes only its flow placement.
 - **Connector dots:** drag near the same frame's boundary to reposition a dot. Attached arrows follow in one undoable action. Drag onto another frame or its connector to create an arrow. On a design board, outer frames show dots automatically; select a nested frame to reveal its dots.
 - **Drop in space:** a draft line stays visible. Choose an existing target, add a Decision or End, or pick a frame reference. Escape cancels without changing saved history. Adding a point and its arrow is one undoable action.
-- **Arrow editing:** hover for the description and Edit / Remove controls. Pick Click, Hover, State change or another event, and optionally the exact source button. Select the arrow to drag its endpoints, bends or whole route, add/remove diamond pivots, or restore automatic routing.
+- **Arrow editing:** hover to trace the arrow and its trigger; click for the description and Edit / Remove controls. Pick Click, Hover, State change or another event, and optionally the exact source button. Select the arrow to drag its endpoints, bends or whole route, add/remove diamond pivots, or restore automatic routing.
 
 Flow artwork stays separate from implementation artwork and React export. `.free` files preserve references, connector positions, routes and history. Source designs travel separately from a Flows workspace export.
 
@@ -243,9 +243,9 @@ The public path `/w/workspace_ID/b/board_ID` is identical to the local path. Int
 
 ### Flow layer on existing designs
 
-Open any design board → **Flow layer** in the canvas toolbar → **＋ Transition**. Select the existing source frame, its triggering button (or frame state), and the target frame. Choose **Trigger event** (Click, Hover, Double click, Key press, Submit, Value change, Focus, Page load, State change or Timer). A small icon and event label appear with plain text centered above the arrow and in its hover details. Set Straight / If / Repeat independently, then add a short title and a longer description. For example: **Hover · Preview details** with an If action. These describe the flow; they do not run the interaction on the design. Saving an event change is one Ctrl+Z action and travels in the .free file. Older arrows infer Click when an element is linked, otherwise State change.
+Open any design board → **Flow layer** in the canvas toolbar → **＋ Transition**. Select the existing source frame, its triggering button (or frame state), and the target frame. Choose **Trigger event** (Click, Hover, Double click, Key press, Submit, Value change, Focus, Page load, State change or Timer). A small icon and event label appear with plain text centered above the arrow and in its click-opened details. Set Straight / If / Repeat independently, then add a short title and a longer description. For example: **Hover · Preview details** with an If action. These describe the flow; they do not run the interaction on the design. Saving an event change is one Ctrl+Z action and travels in the .free file. Older arrows infer Click when an element is linked, otherwise State change.
 
-Arrows sit over the actual native frames. Hover an arrow or its title: the exact trigger lifts with a blue outline, and a popup offers the description, **Edit**, and **Remove**. Click its title to keep the popup open. Move frames, pan or zoom and the arrows follow. Turn the layer off to keep designing. Each saved edit is one Ctrl+Z action. The board’s `.free` file carries the flow layer; generated React contains only the artwork.
+Arrows sit over the actual native frames. Hover an arrow or its title: the exact trigger lifts with a blue outline and the arrow turns amber. Click the arrow or its title to open a popup with the description, **Edit**, and **Remove**. The popup stays open until you close it or select another transition. Move frames, pan or zoom and the arrows follow. Turn the layer off to keep designing. Each saved edit is one Ctrl+Z action. The board’s `.free` file carries the flow layer; generated React contains only the artwork.
 
 **Frame reference** adds a full-size linked frame from another workspace/board to this overlay, with a draggable Reference caption and an **Open original** link. Its native layers load only when visible and refresh when the source design or palette changes. Connect native frames and references, including exact source-button triggers. Reference removal leaves the source intact. Board exports store references; source designs travel separately. Separate **Flows workspaces** remain available for abstract charts. Feature mockups live in the Freegma project; this does not automatically map your product’s routes.
 

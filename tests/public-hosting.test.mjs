@@ -6,6 +6,7 @@ import path from 'node:path';
 import {origins,publicSettings,requestOrigin,proxyBuildConfig} from '../server/public-access.mjs';
 import {createServer} from '../server/http.mjs';
 import {FreegmaStore} from '../server/store.mjs';
+import {BRAND_ROUTE} from '../shared/brand-assets.mjs';
 test('public access is opt-in and forwarded mutations require an explicitly allowed origin',()=>{
  const local={headers:{host:'127.0.0.1:4330'}},remote={headers:{...local.headers,'cf-connecting-ip':'192.0.2.1'}};
  assert.equal(requestOrigin(local),'http://127.0.0.1:4330');
@@ -24,7 +25,8 @@ test('public origin configuration reloads without restarting the editor and reje
  }finally{fs.rmSync(folder,{recursive:true,force:true});}
 });
 test('Vercel forwards every path and method to the tunnel without publishing a local database',()=>{
- const config=proxyBuildConfig('https://example.trycloudflare.com');assert.equal(config.version,3);assert.deepEqual(config.routes,[{src:'/(.*)',dest:'https://example.trycloudflare.com/$1',headers:{'Cache-Control':'no-store'}}]);
+ const config=proxyBuildConfig('https://example.trycloudflare.com');assert.equal(config.version,3);assert.deepEqual(config.routes,[{src:BRAND_ROUTE,dest:'https://example.trycloudflare.com/$1',headers:{'Cache-Control':'public, max-age=3600'}},{src:'/(.*)',dest:'https://example.trycloudflare.com/$1',headers:{'Cache-Control':'no-store'}}]);
+ const brand=new RegExp('^'+BRAND_ROUTE+'$');assert.ok(brand.test('/favicon.ico'));assert.ok(brand.test('/site.webmanifest'));assert.equal(brand.test('/api/boards'),false);assert.equal(brand.test('/faviconXico'),false);
  for(const upstream of ['', 'http://localhost:4330','https://user:secret@example.com','https://example.com/path','https://example.com?query=1'])assert.throws(()=>proxyBuildConfig(upstream));
 });
 test('public HTTP editor shares local revisions, accepts saves and downloads, rejects cross-origin saves',async()=>{
