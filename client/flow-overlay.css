@@ -22,3 +22,5 @@
 .flow-symbol-emphasis .flow-symbol-dot{fill:var(--flow-emphasis)}
 .flow-symbol-emphasis .flow-symbol-title{color:var(--flow-emphasis)}
 .flow-thumbnail .design-layer.flow-trigger-highlight{outline-color:var(--flow-emphasis)}
+
+.flow-route-handle{z-index:1}.flow-route-handle.endpoint{z-index:3}.flow-route-guides{position:absolute;inset:0;z-index:0}.flow-arrow-hit,.flow-edge .edge-hit{cursor:move;touch-action:none}
