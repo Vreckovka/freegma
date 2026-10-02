@@ -1,6 +1,6 @@
 {
   "name": "freegma",
-  "version": "0.1.55",
+  "version": "0.1.56",
   "private": true,
   "type": "module",
   "description": "Local design canvas with editable components, portable workspaces and MCP.",
