@@ -33,8 +33,11 @@ export function validateBindings(node){
 export function readPath(node,path){return path.split('.').reduce((v,k)=>v?.[k],node);}
 export function writePath(node,path,value){const parts=path.split('.'),last=parts.pop();const object=parts.reduce((v,k)=>v?.[k],node);if(object)object[last]=value;}
 export function themeColors(palette){return palette?.themes?.find(t=>t.id===palette.themeId)?.colors||palette?.themes?.find(t=>t.id===palette.defaultTheme)?.colors||{};}
-export function resolveNode(node,palette){const result=structuredClone(node),colors=themeColors(palette);for(const b of node.colorBindings||[]){const value=colors[b.token];if(value==null)continue;const prior=readPath(result,b.path);if(typeof prior==='string')writePath(result,b.path,b.path.startsWith('cssOverrides.')?prior.split(b.source).join(value):value);}return result;}
+const resolveOwnedNode=(result,colors)=>{for(const b of result.colorBindings||[]){const value=colors[b.token];if(value==null)continue;const prior=readPath(result,b.path);if(typeof prior==='string')writePath(result,b.path,b.path.startsWith('cssOverrides.')?prior.split(b.source).join(value):value);}return result;};
+export function resolveNode(node,palette){return resolveOwnedNode(structuredClone(node),themeColors(palette));}
 export function resolveDocument(document,palette){return {...document,nodes:document.nodes.map(n=>resolveNode(n,palette))};}
+// Only use with a private document copy; public resolvers keep cloning inputs.
+export function resolveOwnedDocument(document,palette){const colors=themeColors(palette);for(const node of document.nodes)resolveOwnedNode(node,colors);return document;}
 export function bindingPatch(node,path,key){if(!PATH.test(path))fail('Invalid color property.');const remaining=(node.colorBindings||[]).filter(b=>b.path!==path);const source=readPath(node,path);return {colorBindings:key?[...remaining,{path,token:key,source:source==='none'&&path.startsWith('paths.')?source:validateColor(source)}]:remaining};}
 export function detachPatchedColors(node,patch){
   if(Object.hasOwn(patch,'colorBindings'))return;
@@ -50,7 +53,11 @@ export function colorSlots(node){
 }
 export function newColorSystem(){return {revision:1,defaultTheme:'theme_default',schematic:[{key:'background',name:'Background',value:'#101219'},{key:'surface',name:'Surface / overlay',value:'#1b1e27'},{key:'text',name:'Text',value:'#e8eaf3'},{key:'muted',name:'Muted text',value:'#afb4c5'},{key:'border',name:'Border',value:'#303544'},{key:'accent',name:'Accent',value:'#ae9bff'}],themes:[{id:'theme_default',name:'Default',colors:{background:'#101219',surface:'#1b1e27',text:'#e8eaf3',muted:'#afb4c5',border:'#303544',accent:'#ae9bff'}}]};}
 export function materializeSchematics(document,palette,makeNode){
-  const doc=structuredClone(document),colors=themeColors(palette);
+  return materializeOwnedSchematics(structuredClone(document),palette,makeNode);
+}
+// Generated schematic children belong to the caller's private scratch document.
+export function materializeOwnedSchematics(doc,palette,makeNode){
+  const colors=themeColors(palette);
   for(const n of [...doc.nodes])if(n.colorSchematic){
     delete n.colorSchematic;n.cssOverrides={...n.cssOverrides,overflow:'auto'};
     const text=(id,value,x,y,w,size)=>doc.nodes.push(makeNode('text',{id:n.id+'_'+id,parentId:n.id,name:value,text:value,x,y,width:w,height:size*2,fontSize:size,color:n.color,fill:'transparent',strokeWidth:0}));
