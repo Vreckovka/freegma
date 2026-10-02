@@ -4,6 +4,7 @@ import {compactBoard,boardView} from './mcp-responses.mjs';
 const receiptTools=new Set(['freegma_create_board','freegma_apply_operations','freegma_apply_flow_overlay','freegma_apply_flow','freegma_apply_css','freegma_insert_color_schematic','freegma_link_task','freegma_undo','freegma_redo']);
 const str={type:'string'},num={type:'number'},schema=(properties,required=[])=>({type:'object',properties,required,additionalProperties:false});
 export const toolDefinitions=[
+  ['freegma_arrange_flow','Arrange a Flows board or native flow layer algorithmically: compact circuit-style placement, separate ports, orthogonal routing and clear labels. Replaces manual routes and enables only necessary instance position overrides; preserves artwork, components, triggers, references and colors. One undoable save. Call only when arrangement is requested; expectedRevision protects concurrent edits. Returns a compact revision receipt by default; responseMode:full returns the board.',schema({boardId:str,expectedRevision:{type:'integer'},responseMode:{type:'string',enum:['compact','full']}},['boardId','expectedRevision'])],
   ['freegma_apply_flow_overlay','Edit a flow layer over existing native design frames without changing artwork. Move connector dots with setPort(id,port:top|right|bottom|left,anchor:{side,offset}); connected edges with fromPort/toPort follow atomically. Ports are stored in flowOverlay.ports by owner ID. Flow-only symbols: addSymbol(symbol:{id,kind:start|decision|repeat|end,title,explanation,x,y}), updateSymbol(id,patch), removeSymbol(id). Start has no incoming and End no outgoing transitions. Removing a symbol also removes attached arrows. Operations: addEdge(edge:{id,fromFrameId,toFrameId,triggerId optional,event optional:click|hover|double-click|key-press|submit|change|focus|page-load|state-change|timer,action:straight|if|repeat,title,explanation}), updateEdge(id,patch), removeEdge(id). Optional edge.route:{from?:{side:top|right|bottom|left,offset:0..1},to?:{side,offset},controls?:[{x,y},{x,y}] (offsets from start/end anchors),via?:{x,y} (world-space outside corner for repeat),pivots?:[{x,y},...] (up to 32 ordered world-space waypoints)}. Set route:null to restore automatic routing. Add full-size references from other boards with addFrame(frame:{id,reference:{workspaceId,boardId,frameId,name optional},x,y,width,height}), updateFrame(id,patch) or removeFrame(id). Endpoint IDs refer to native frames (including component frames), overlay frame references or flow symbols; the trigger must belong to the source frame. A frame-state transition may omit triggerId. Self loops use repeat. Changes are atomic, undoable and stored in .free files; React export excludes the flow overlay.',schema({boardId:str,expectedRevision:{type:"integer"},operations:{type:"array",items:{type:"object"}},label:str},['boardId','expectedRevision','operations'])],
   ['freegma_create_flow_workspace','Create an independent Flows workspace and an empty flow board. References existing designs without changing them.',schema({name:str,parentId:str},['name'])],
   ['freegma_flow_sources','List frames on one design board; supply frameId to list its elements for click triggers. Load only the selected board.',schema({boardId:str,frameId:str},['boardId'])],
@@ -44,6 +45,7 @@ function callToolFull(store,name,a={}){
   for(const [key,value] of Object.entries(a)){const spec=def.inputSchema.properties[key];if(spec.type==='string'&&typeof value!=='string'||spec.type==='integer'&&!Number.isSafeInteger(value)||spec.type==='number'&&!Number.isFinite(value)||spec.type==='array'&&!Array.isArray(value)||spec.type==='object'&&(!value||typeof value!=='object'||Array.isArray(value))||spec.enum&&!spec.enum.includes(value))throw new Error('Invalid argument: '+key);}
   const origin=process.env.FREEGMA_ORIGIN||'http://127.0.0.1:4330',link=b=>({...b,url:`${origin}/w/${b.workspaceId}/b/${b.id}`});
   switch(name){
+    case 'freegma_arrange_flow':return store.arrangeFlow(a.boardId,a.expectedRevision).then(link);
     case 'freegma_create_project':return store.createProject(a.name,a.template);
     case 'freegma_deletion_preview':return store.deletionPreview(a.kind,a.id);
     case 'freegma_delete_design':return store.deleteDesign(a.kind,a.id,a);
@@ -83,6 +85,7 @@ function callToolFull(store,name,a={}){
 }
 export function callTool(store,name,a={}){
  const result=callToolFull(store,name,a);
+ if(name==='freegma_arrange_flow')return result.then(b=>a.responseMode==='full'?b:{...compactBoard(b),arrangement:b.arrangement});
  return a.responseMode==='compact'?compactBoard(result,a.operations):result;
 }
 export function rpc(store,message){
@@ -94,6 +97,6 @@ export function rpc(store,message){
   if(message.method==='tools/list')return respond({tools:toolDefinitions});
   if(message.method==='resources/list')return respond({resources:store.workspaces().flatMap(w=>store.boards(w.id).map(b=>({uri:'freegma://board/'+b.id,name:b.name,mimeType:'application/json'})))});
   if(message.method==='resources/read'){try{const id=message.params?.uri?.match(/^freegma:\/\/board\/([\w-]+)$/)?.[1];if(!id)throw new Error('Unknown resource');return respond({contents:[{uri:message.params.uri,mimeType:'application/json',text:JSON.stringify(store.getBoard(id))}]});}catch(e){return {jsonrpc:'2.0',id:message.id,error:{code:-32002,message:e.message}};}}
-  if(message.method==='tools/call'){try{const value=callTool(store,message.params?.name,message.params?.arguments);return respond({content:[{type:'text',text:JSON.stringify(value)}],structuredContent:value,isError:false});}catch(e){return respond({content:[{type:'text',text:e.message}],isError:true});}}
+  if(message.method==='tools/call'){const success=value=>respond({content:[{type:'text',text:JSON.stringify(value)}],structuredContent:value,isError:false}),failure=e=>respond({content:[{type:'text',text:e.message}],isError:true});try{const value=callTool(store,message.params?.name,message.params?.arguments);return value?.then?value.then(success,failure):success(value);}catch(e){return failure(e);}}
   return {jsonrpc:'2.0',id:message.id,error:{code:-32601,message:'Method not found'}};
 }

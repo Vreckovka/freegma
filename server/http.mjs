@@ -46,6 +46,8 @@ export function createServer({store=new FreegmaStore(),build=process.env.FREEGMA
       if(route==='/api/files/import' &&req.method==='POST')return json(res,201,store.importFree(body.package,body.workspaceId));
       if(route==='/api/flow-workspaces'&&req.method==='POST')return json(res,201,store.createFlowWorkspace(body.name,body.parentId));
       if(route==='/api/flow-reference'&&req.method==='POST')return json(res,200,store.flowReference(body));
+      const arrange=route.match(/^\/api\/boards\/([\w-]+)\/arrange$/);
+      if(arrange&&req.method==='POST')return json(res,200,await store.arrangeFlow(arrange[1],body.expectedRevision));
       const flowRoute=route.match(/^\/api\/boards\/([\w-]+)\/(flow|flow-overlay|flow-sources|flow-preview)$/);
       const batchRoute=route.match(/^\/api\/boards\/([\w-]+)\/edit-batches$/);
       if(batchRoute&&req.method==='POST')return json(res,200,store.mutateBatch(batchRoute[1],body.expectedRevision,body.batchId,body.actions));
@@ -74,7 +76,7 @@ export function createServer({store=new FreegmaStore(),build=process.env.FREEGMA
       if(reference&&req.method==='GET')return json(res,200,store.componentReference(reference[1],reference[2]));
       const b=route.match(/^\/api\/boards\/([\w-]+)(\/operations|\/document|\/history|\/undo|\/redo|\/export|\/status)?$/);
       if(b){if(b[2]==='/status'&&req.method==='GET')return json(res,200,store.boardStatus(b[1]));if(!b[2]&&req.method==='GET')return serveBoard(req,res,b[1]);if(!b[2]&&req.method==='PATCH')return json(res,200,store.meta(b[1],body.expectedRevision,body));if(b[2]==='/operations'&&req.method==='POST')return json(res,200,store.mutate(b[1],body.expectedRevision,body.operations,body.label));if(b[2]==='/document'&&req.method==='PUT')return json(res,200,store.replace(b[1],body.expectedRevision,body.document));if(b[2]==='/history'&&req.method==='GET')return json(res,200,{history:store.history(b[1])});if(['/undo','/redo'].includes(b[2])&&req.method==='POST')return json(res,200,store.travel(b[1],body.expectedRevision,b[2].slice(1),body.expectedPaletteRevision));if(b[2]==='/export'&&req.method==='GET')return json(res,200,store.export(b[1],url.searchParams.get('nodeId'),url.searchParams.get('name')??undefined));}
-      if(route==='/api/tools'&&req.method==='POST')return json(res,200,callTool(store,body.name,body.arguments));
+      if(route==='/api/tools'&&req.method==='POST')return json(res,200,await callTool(store,body.name,body.arguments));
       if(route.startsWith('/api/'))return json(res,404,{error:'Endpoint not found.'});
       const file=['/app.js','/app.css','/theme.js'].includes(route)?path.join(build,route.slice(1)):path.join(build,'index.html');
       if(!fs.existsSync(file))return json(res,503,{error:'Build Freegma first: node freegma/scripts/build.mjs'});

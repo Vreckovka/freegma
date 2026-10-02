@@ -3,7 +3,8 @@ export function validateRoute(route){
  if(route==null)return;
  const object=value=>value&&typeof value==='object'&&!Array.isArray(value);
  const point=p=>object(p)&&Object.keys(p).length===2&&['x','y'].every(k=>Number.isFinite(p[k])&&Math.abs(p[k])<=100000);
- if(!object(route)||Object.keys(route).some(k=>!['from','to','controls','via','pivots'].includes(k)))fail('Invalid arrow route.');
+ if(!object(route)||Object.keys(route).some(k=>!['from','to','controls','via','pivots','label'].includes(k)))fail('Invalid arrow route.');
+ if(route.label!==undefined&&!point(route.label))fail('An arrow label needs a bounded position.');
  for(const key of ['from','to'])if(route[key]!==undefined){const a=route[key];if(!object(a)||Object.keys(a).some(k=>!['side','offset'].includes(k))||!['top','right','bottom','left'].includes(a.side)||!Number.isFinite(a.offset)||a.offset<0||a.offset>1)fail('An arrow anchor needs a side and an offset between 0 and 1.');}
  if(route.controls!==undefined&&(!Array.isArray(route.controls)||route.controls.length!==2||!route.controls.every(point)))fail('A curve needs two bounded control offsets.');
  if(route.via!==undefined&&!point(route.via))fail('A repeat route needs a bounded outside point.');
@@ -21,6 +22,7 @@ export function nearestFlowAnchor(bounds,p){
 // Curve offsets follow their endpoint when a referenced frame moves or resizes.
 export function draggedFlowRoute(geometry,route,handle,point,from,to){
  const next=structuredClone(route||{}),points=geometry.points;
+ delete next.label;
  if(handle==='from'||handle==='to')next[handle]=nearestFlowAnchor(handle==='from'?from:to,point);
  else if(handle.startsWith('pivot_')){const i=Number(handle.slice(6));if(!Number.isInteger(i)||!next.pivots?.[i])fail('Pivot point not found.');next.pivots[i]={x:point.x,y:point.y};}
  else if(handle==='via')next.via={x:point.x,y:point.y};
@@ -29,6 +31,7 @@ export function draggedFlowRoute(geometry,route,handle,point,from,to){
 }
 export function addFlowPivot(geometry,route){
  const next=structuredClone(route||{}),points=geometry.points;
+ delete next.label;
  if(!next.pivots?.length){if(geometry.polyline){next.pivots=points.slice(1,-1).map(p=>({...p}));next.via||={...points[2]};}else {const [a,b,c,d]=points;next.controls||=[{x:b.x-a.x,y:b.y-a.y},{x:c.x-d.x,y:c.y-d.y}];next.pivots=[{...geometry.label}];validateRoute(next);return next;}}
  if(next.pivots.length>=32)fail('An arrow supports up to 32 pivot points.');
  const path=[points[0],...next.pivots,points.at(-1)];let segment=0,length=-1;
@@ -36,19 +39,20 @@ export function addFlowPivot(geometry,route){
  next.pivots.splice(segment,0,{x:(path[segment].x+path[segment+1].x)/2,y:(path[segment].y+path[segment+1].y)/2});validateRoute(next);return next;
 }
 export function removeFlowPivot(route,index){
- const next=structuredClone(route||{});if(!Number.isInteger(index)||!next.pivots?.[index])fail('Pivot point not found.');next.pivots.splice(index,1);if(!next.pivots.length)delete next.pivots;validateRoute(next);return next;
+ const next=structuredClone(route||{});if(!Number.isInteger(index)||!next.pivots?.[index])fail('Pivot point not found.');delete next.label;next.pivots.splice(index,1);if(!next.pivots.length)delete next.pivots;validateRoute(next);return next;
 }
 export function translatedFlowRoute(geometry,route,dx,dy){
  const next=structuredClone(route||{});
+ if(next.label)next.label={x:next.label.x+dx,y:next.label.y+dy};
  if(next.pivots?.length)next.pivots=next.pivots.map(p=>({x:p.x+dx,y:p.y+dy}));
  else if(geometry.polyline)next.via={x:geometry.points[2].x+dx,y:geometry.points[2].y+dy};
  else {const [a,b,c,d]=geometry.points,controls=next.controls||[{x:b.x-a.x,y:b.y-a.y},{x:c.x-d.x,y:c.y-d.y}];next.controls=controls.map(p=>({x:p.x+dx,y:p.y+dy}));}
  validateRoute(next);return next;
 }
 function withPivots(geometry,route){
- if(!route?.pivots?.length)return geometry;
+ if(!route?.pivots?.length)return route?.label?{...geometry,label:route.label}:geometry;
  const points=[geometry.points[0],...route.pivots,geometry.points.at(-1)];let longest=0,index=0;for(let i=0;i<points.length-1;i++){const length=Math.hypot(points[i+1].x-points[i].x,points[i+1].y-points[i].y);if(length>longest){longest=length;index=i;}}
- return {points,polyline:true,pivots:true,label:{x:(points[index].x+points[index+1].x)/2,y:(points[index].y+points[index+1].y)/2}};
+ return {points,polyline:true,pivots:true,label:route?.label||{x:(points[index].x+points[index+1].x)/2,y:(points[index].y+points[index+1].y)/2}};
 }
 // World-space paths stay anchored to native frames; labels/popovers use viewport pixels.
 export function overlayPath(from,to,{loop=false,repeat=false,lane=0,route,horizontal=false}={}){

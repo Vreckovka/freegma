@@ -179,6 +179,8 @@ There are **31 tools** for projects, workspaces, boards, flows, deletion preview
 
 ## Flows: designs plus product logic
 
+**Auto arrange flow** positions frames and decision points and redraws orthogonal connections. It works on Flows boards and design-board flow layers. Review the confirmation before applying it; Undo restores the previous layout as one action. Agents can use the same engine through `freegma_arrange_flow`, with a compact revision receipt instead of coordinate-heavy edits. See the [arrangement guide](docs/auto-arrange-flow.md) for the routing policy, safety checks and supported layouts.
+
 Choose **Workspace menu → New Flows workspace**. Add a **Frame** by choosing its design workspace, board and frame. Add **If**, **Repeat** and **End** steps, then select a step, choose **Connect**, and click the next step. Output/input ports also create connections.
 
 [Editable feature mockups](examples/Flows-Feature.free) include the canvas, frame picker and transition inspector as three native design frames. Import this `.free` package to browse or edit the feature designs.

@@ -132,6 +132,11 @@
   resolved "https://registry.yarnpkg.com/@esbuild/win32-x64/-/win32-x64-0.25.12.tgz#9bdad8176be7811ad148d1f8772359041f46c6c5"
   integrity sha512-alJC0uCZpTFrSL0CCDjcgleBXPnCrEAhTBILpeAp7M/OFgoqtAetfBzX0xM00MUsVVPpVjlPuMbREqnZCXaTnA==
 
+elkjs@0.11.0:
+  version "0.11.0"
+  resolved "https://registry.yarnpkg.com/elkjs/-/elkjs-0.11.0.tgz#ca57b209ff66531c0f77ff32b9667aaeaad45d1b"
+  integrity sha512-u4J8h9mwEDaYMqo0RYJpqNMFDoMK7f+pu4GjcV+N8jIC7TRdORgzkfSjTJemhqONFfH6fBI3wpysgWbhgVWIXw==
+
 esbuild@0.25.12:
   version "0.25.12"
   resolved "https://registry.yarnpkg.com/esbuild/-/esbuild-0.25.12.tgz#97a1d041f4ab00c2fce2f838d2b9969a2d2a97a5"

@@ -25,5 +25,5 @@ export function connectorDrop(owners,sourceId,point,tolerance=16){
 }
 export function updateAttachedPort(edges,ownerId,key,anchor,overlay=false){
  const from=overlay?'fromFrameId':'from',to=overlay?'toFrameId':'to';
- for(const e of edges){if(e[from]===ownerId&&e.fromPort===key)e.route={...e.route,from:structuredClone(anchor)};if(e[to]===ownerId&&e.toPort===key)e.route={...e.route,to:structuredClone(anchor)};}
+ for(const e of edges){if(e[from]===ownerId&&e.fromPort===key){e.route={...e.route,from:structuredClone(anchor)};delete e.route.label;}if(e[to]===ownerId&&e.toPort===key){e.route={...e.route,to:structuredClone(anchor)};delete e.route.label;}}
 }
