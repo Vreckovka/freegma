@@ -102,3 +102,4 @@
 .board-section-resizer:before{content:"";position:absolute;left:0;right:0;top:3px;height:1px;background:var(--border)}
 .board-section-resizer:hover:before,.board-section-resizer:focus-visible:before,.resizing-board-section .board-section-resizer:before{height:2px;background:var(--accent)}
 .resizing-board-section,.resizing-board-section *{cursor:row-resize!important;user-select:none!important}
+.board-load-status{position:fixed;left:50%;top:62px;transform:translateX(-50%);z-index:40;display:flex;align-items:center;gap:12px;max-width:calc(100vw - 32px);padding:9px 14px;border:1px solid var(--border);border-radius:8px;background:var(--ui-panel);color:var(--ui-text);box-shadow:0 5px 20px #0003;font-size:12px}.board-load-status.loading{pointer-events:none}.board-load-status button{padding:5px 9px;border:1px solid var(--border);border-radius:5px;background:var(--ui-field);color:var(--accent);white-space:nowrap}.board-load-status.error{border-color:var(--accent)}
