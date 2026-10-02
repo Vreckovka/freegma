@@ -1,0 +1,16 @@
+import test from 'node:test';import assert from 'node:assert/strict';import fs from 'node:fs';
+import {FreegmaStore} from '../server/store.mjs';import {makeNode} from '../shared/design.mjs';import {decodeFree} from '../server/free-format.mjs';
+function fixture(){const s=new FreegmaStore(':memory:',{seed:false}),w=s.createWorkspace('Travel'),original=s.createBoard(w.id,'Board',{nodes:[makeNode('frame',{id:'frame'})]});let b=s.mutate(original.id,original.revision,[{op:'update',id:'frame',patch:{x:20}}]);b=s.mutate(b.id,b.revision,[{op:'add',node:makeNode('text',{id:'added',parentId:'frame',text:'New label',x:7,y:9})}]);b=s.comment(b.id,0,{id:'author',name:'Author'},{op:'create',text:'Attached comment',x:7,y:9,anchor:{nodeId:'added',offsetX:3,offsetY:4}});return {s,b};}
+function freeze(value){if(value&&typeof value==='object'&&!Object.isFrozen(value)){Object.freeze(value);for(const child of Object.values(value))freeze(child);}return value;}
+test('Undo/Redo leave borrowed cached snapshots and comments immutable, while restoring exact saved history',()=>{
+ const {s,b}=fixture();try{const raw=s.readBoard(b.id,false),before=structuredClone(raw);freeze(raw);const read=s.readBoard.bind(s);let copies=0;s.readBoard=(id,copy=true)=>{if(copy)copies++;return read(id,copy);};
+ let next=s.travel(b.id,b.revision,'undo');assert.equal(copies,0);assert.deepEqual(raw,before);assert.equal(next.document.nodes.some(n=>n.id==='added'),false);assert.equal(next.comments[0].anchor,null);assert.equal(raw.comments[0].anchor.nodeId,'added');assert.ok(s.readBoard(next.id,false).history[1].undoneAt);
+ const expected=structuredClone(next.document);next.document.nodes[0].x=999;assert.deepEqual(s.getBoard(next.id).document,expected);next=s.travel(next.id,next.revision,'redo');assert.deepEqual(next.document,b.document);assert.deepEqual(s.readBoard(next.id,false).history.map(({undoneAt,...h})=>h),before.history);assert.deepEqual(decodeFree(fs.readFileSync(next.filePath)).value,s.readBoard(next.id,false));
+ next=s.travel(next.id,next.revision,'undo');next=s.mutate(next.id,next.revision,[{op:'update',id:'frame',patch:{x:70}}]);assert.equal(next.canRedo,false);assert.equal(s.readBoard(next.id,false).history[1].after.nodes[0].x,70);assert.deepEqual(raw,before);
+ }finally{s.close();}
+});
+test('failed Undo cannot leak changed timestamps, comments or cursor into the cached board',()=>{
+ const {s,b}=fixture();try{const raw=s.readBoard(b.id,false),before=structuredClone(raw),bytes=fs.readFileSync(b.filePath);freeze(raw);const stage=s.files.stage.bind(s.files);s.files.stage=(file,value)=>{if(file.endsWith('/'+b.id+'.free'))throw Error('Injected staging failure');return stage(file,value);};assert.throws(()=>s.travel(b.id,b.revision,'undo'),/Injected staging failure/);assert.deepEqual(raw,before);assert.deepEqual(s.readBoard(b.id,false),before);assert.deepEqual(fs.readFileSync(b.filePath),bytes);assert.equal(s.getBoard(b.id).comments[0].anchor.nodeId,'added');
+ s.files.stage=stage;const next=s.travel(b.id,b.revision,'undo');assert.equal(next.revision,b.revision+1);assert.equal(next.comments[0].anchor,null);assert.throws(()=>s.travel(b.id,b.revision,'redo'),e=>e.status===409);
+ }finally{s.close();}
+});
