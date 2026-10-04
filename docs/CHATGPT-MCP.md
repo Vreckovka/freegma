@@ -11,7 +11,7 @@ Use **https://freegma-theta.vercel.app/mcp** as the MCP server URL. A board's `/
 
 No API key or OAuth login is required. This deployment intentionally grants anonymous callers the existing read and edit tools. Origin checks protect browser transport boundaries; they do not identify users or restrict server-side callers. Tool annotations describe reads and destructive actions, while revisions protect concurrent edits. These are not authentication or user roles.
 
-The server runs on the local PC. **Vercel → public tunnel → local Freegma → local `.free` files** is used for both the website and MCP. Keep the PC, Freegma terminal and tunnel terminal running. Vercel holds the proxy configuration, not a second copy of the designs. Public MCP results return public board links; local MCP results return local links.
+The server runs on the local PC. **Vercel → public tunnel → local Freegma → local `.free` files** is used for both the website and MCP. Keep the PC, Freegma terminal and tunnel terminal running. Vercel holds the proxy configuration, not a second copy of the designs. Public MCP results return board links using the first configured public origin, so proxies cannot replace them with temporary tunnel links; local MCP results return local links.
 
 Try these prompts after connecting:
 

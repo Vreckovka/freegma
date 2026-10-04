@@ -9,7 +9,7 @@ async function setup(){
   const store=new FreegmaStore(':memory:',{seed:false});
   const workspace=store.createWorkspace('Remote MCP test');
   const board=store.createBoard(workspace.id,'Native test',{version:1,nodes:[makeNode('text',{id:'title',text:'Original'})]});
-  const server=createServer({store,access:()=>({origins:['https://studio.example'],embedOrigins:[]})});
+  const server=createServer({store,access:()=>({origins:['https://studio.example','https://temporary.trycloudflare.com'],embedOrigins:[]})});
   await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
   const base='http://127.0.0.1:'+server.address().port;
   const request=(body,extra={})=>fetch(base+'/mcp',{method:'POST',headers:{...headers,...extra},body:JSON.stringify(body),signal:AbortSignal.timeout(10000)});
@@ -48,6 +48,7 @@ test('public MCP returns public links, allows ChatGPT origin only on MCP, and re
     const editor=await fetch(s.base+'/api/workspaces',{headers:remote});assert.equal(editor.status,403);
     const options=await fetch(s.base+'/mcp',{method:'OPTIONS',headers:remote});assert.equal(options.status,204);assert.equal(options.headers.get('access-control-allow-origin'),'https://chatgpt.com');assert.match(options.headers.get('access-control-allow-headers'),/MCP-Protocol-Version/);
     const withoutOrigin=await s.call('freegma_list_boards',{workspaceId:s.workspace.id},{'x-forwarded-for':'192.0.2.1','x-forwarded-host':'studio.example'});assert.match(withoutOrigin.result.structuredContent.boards[0].url,/^https:\/\/studio.example/);
+    const tunnel=await s.call('freegma_list_workspaces',{}, {'cf-connecting-ip':'192.0.2.1','x-forwarded-host':'temporary.trycloudflare.com'});assert.equal(tunnel.result.structuredContent.workspaces[0].url,'https://studio.example/w/'+s.workspace.id);
   }finally{await s.close();}
 });
 test('MCP transport validates messages, content negotiation and unsupported methods without editor fallback',async()=>{

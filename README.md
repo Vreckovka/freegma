@@ -179,7 +179,7 @@ Large HTTP responses use negotiated compression. Unchanged editor files can be r
 {"mcpServers":{"freegma":{"command":"/absolute/path/to/node","args":["/absolute/path/to/freegma/server/mcp.mjs"]}}}
 ```
 
-There are **31 tools** for projects, workspaces, boards, flows, deletion previews, operations, components, images, CSS/React, portable files, colors, comments, task references and Undo/Redo. Use `freegma_create_project` with `template: "empty"` or `"light-dark"`. Read current revisions before editing. Logs use stderr; stdout remains JSON-RPC.
+There are **33 tools** for projects, workspaces, boards, flows, deletion previews, operations, components, images, CSS/React, portable files, colors, comments, task references and Undo/Redo. Use `freegma_create_project` with `template: "empty"` or `"light-dark"`. Read current revisions before editing. Logs use stderr; stdout remains JSON-RPC.
 
 ## Flows: designs plus product logic
 

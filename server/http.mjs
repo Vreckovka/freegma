@@ -25,7 +25,9 @@ export function createServer({store=new FreegmaStore(),build=process.env.FREEGMA
       res.setHeader('Content-Security-Policy',"default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' blob: data:; connect-src 'self'; frame-ancestors 'self' "+[...new Set([...parents,...settings.embedOrigins||[]])].join(' '));
       const mcp=new URL(req.url,'http://localhost').pathname==='/mcp';
       const origin=requestOrigin(req,settings.origins,mcp?mcpOrigins:[]),url=new URL(req.url,origin),route=url.pathname;
-      if(mcp)return await handleMcp(req,res,store,origin);
+      // Reverse proxies can replace forwarded-host with the temporary tunnel host.
+      // Remote MCP links use the configured primary public origin; local links stay local.
+      if(mcp)return await handleMcp(req,res,store,req.headers['cf-connecting-ip']||req.headers['x-forwarded-for']?settings.origins[0]:origin);
       if(route.startsWith('/.well-known/'))return json(res,404,{error:'No authentication discovery is configured.'});
       if(serveBrand(req,res,url))return;
       const sourceDownload=route.match(/^\/api\/source-downloads\/([a-f0-9-]+)$/);
