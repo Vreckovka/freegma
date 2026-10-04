@@ -169,6 +169,8 @@ The original timing baseline remains unchanged. A size metric added later names 
 
 Use `yarn mcp` or configure your agent with an absolute Node executable and `server/mcp.mjs`. HTTP and MCP share storage and optimistic revisions.
 
+The running web server also exposes **Streamable HTTP at `/mcp`**. This deployment's ChatGPT connection URL is **https://freegma-theta.vercel.app/mcp**. Select **No authentication**, then enable Freegma in a conversation. The Vercel proxy forwards MCP to the local server; designs stay in the same `.free` files. The local server and tunnel must remain running. This endpoint intentionally allows anonymous reads and edits. See the [ChatGPT setup and transport guide](docs/CHATGPT-MCP.md).
+
 For smaller AI context, use `freegma_get_board` with `view:"outline"` to find IDs, then `view:"nodes", nodeId:"frame-id"` to inspect only that frame. Reads are paginated and retain revision checks. Board mutations accept `responseMode:"compact"` for a small revision receipt instead of returning every layer again. Existing full responses remain available. The local comparison table now includes MCP payload tokens and bytes; see [MCP workflow and benchmark](docs/MCP-PERFORMANCE.md).
 
 Large HTTP responses use negotiated compression. Unchanged editor files can be revalidated without downloading their bodies again; live API/save responses stay fresh. See the [local network benchmark and caching behavior](docs/NETWORK-PERFORMANCE.md).
@@ -211,6 +213,7 @@ Defaults need no configuration. Set variables in your shell/service; `.env.examp
 | `FREEGMA_WORKSPACES` | `workspaces` beside the index |
 | `FREEGMA_BUILD` | `<repository>/dist` |
 | `FREEGMA_ORIGIN` | Base URL for MCP links |
+| `FREEGMA_MCP_ORIGINS` | Additional browser origins allowed only on `/mcp`; default `https://chatgpt.com` |
 | `FREEGMA_EMBED_ORIGINS` | Comma-separated frame origins; default local ports 4320/4318 |
 
 Embed by iframe in a permitted host. Navigation sends `{type:"freegma:navigate",path:"/w/…/b/…"}` to the referrer's origin; hosts check sender origin and iframe window. A task reference is plain optional metadata.

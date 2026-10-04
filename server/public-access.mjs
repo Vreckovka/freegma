@@ -18,14 +18,14 @@ export function publicSettings(env=process.env) {
     return {origins:origins(env.FREEGMA_PUBLIC_ORIGINS),embedOrigins:origins(env.FREEGMA_EMBED_ORIGINS)};
   };
 }
-export function requestOrigin(req,allowed=[]) {
+export function requestOrigin(req,allowed=[],clientOrigins=[]) {
   const host=req.headers.host||'';
   if(!/^(127\.0\.0\.1|localhost|\[::1\])(:\d+)?$/.test(host))throw Object.assign(Error('Local Freegma host required.'),{status:403});
   const remote=Boolean(req.headers['cf-connecting-ip']||req.headers['x-forwarded-for']);
   if(remote&&!allowed.length)throw Object.assign(Error('Public Freegma access is not configured.'),{status:403});
   let origin;
   if(req.headers.origin){
-    try{const url=new URL(req.headers.origin);origin=url.origin;if(origin!==req.headers.origin||!['http:','https:'].includes(url.protocol)||!(url.host===host||remote&&allowed.includes(origin)))throw Error();}
+    try{const url=new URL(req.headers.origin);origin=url.origin;if(origin!==req.headers.origin||!['http:','https:'].includes(url.protocol)||!(url.host===host||remote&&allowed.includes(origin)||clientOrigins.includes(origin)))throw Error();}
     catch{throw Object.assign(Error('Cross-origin request rejected.'),{status:403});}
   }
   if(!remote)return 'http://'+host;

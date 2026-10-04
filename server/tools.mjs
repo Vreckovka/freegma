@@ -38,12 +38,12 @@ export const toolDefinitions=[
   ['freegma_undo','Undo the latest design or accepted project-color edit. Send expectedRevision and expectedPaletteRevision from the board. Color Undo changes the shared variable without rewriting artwork.',schema({boardId:str,expectedRevision:{type:'integer'},expectedPaletteRevision:{type:'integer'}},['boardId','expectedRevision'])],
   ['freegma_redo','Redo the latest undone design or project-color edit. Send expectedRevision and expectedPaletteRevision from the board.',schema({boardId:str,expectedRevision:{type:'integer'},expectedPaletteRevision:{type:'integer'}},['boardId','expectedRevision'])],
 ].map(([name,description,inputSchema])=>({name,description:description+(receiptTools.has(name)?' Use responseMode:compact for a small revision receipt; omitted returns the full board.':''),inputSchema:receiptTools.has(name)?{...inputSchema,properties:{...inputSchema.properties,responseMode:{type:'string',enum:['compact','full']}}}:inputSchema,annotations:{readOnlyHint:['freegma_deletion_preview','freegma_list_comments','freegma_get_colors','freegma_list_workspaces','freegma_list_boards','freegma_get_board','freegma_list_components','freegma_component_reference','freegma_export_react','freegma_export_file'].includes(name),destructiveHint:name==='freegma_delete_design',openWorldHint:false}}));
-function callToolFull(store,name,a={}){
+function callToolFull(store,name,a={},context={}){
   const def=toolDefinitions.find(t=>t.name===name);if(!def)throw new Error('Unknown tool: '+name);
   if(!a||typeof a!=='object'||Array.isArray(a)||Object.keys(a).some(k=>!Object.hasOwn(def.inputSchema.properties,k)))throw new Error('Invalid tool arguments.');
   for(const key of def.inputSchema.required)if(a[key]===undefined)throw new Error('Missing argument: '+key);
   for(const [key,value] of Object.entries(a)){const spec=def.inputSchema.properties[key];if(spec.type==='string'&&typeof value!=='string'||spec.type==='integer'&&!Number.isSafeInteger(value)||spec.type==='number'&&!Number.isFinite(value)||spec.type==='array'&&!Array.isArray(value)||spec.type==='object'&&(!value||typeof value!=='object'||Array.isArray(value))||spec.enum&&!spec.enum.includes(value))throw new Error('Invalid argument: '+key);}
-  const origin=process.env.FREEGMA_ORIGIN||'http://127.0.0.1:4330',link=b=>({...b,url:`${origin}/w/${b.workspaceId}/b/${b.id}`});
+  const origin=context.origin||process.env.FREEGMA_ORIGIN||'http://127.0.0.1:4330',link=b=>({...b,url:`${origin}/w/${b.workspaceId}/b/${b.id}`});
   switch(name){
     case 'freegma_arrange_flow':return store.arrangeFlow(a.boardId,a.expectedRevision).then(link);
     case 'freegma_create_project':return store.createProject(a.name,a.template);
@@ -83,20 +83,20 @@ function callToolFull(store,name,a={}){
     case 'freegma_redo':return store.travel(a.boardId,a.expectedRevision,'redo',a.expectedPaletteRevision);
   }
 }
-export function callTool(store,name,a={}){
- const result=callToolFull(store,name,a);
+export function callTool(store,name,a={},context={}){
+ const result=callToolFull(store,name,a,context);
  if(name==='freegma_arrange_flow')return result.then(b=>a.responseMode==='full'?b:{...compactBoard(b),arrangement:b.arrangement});
  return a.responseMode==='compact'?compactBoard(result,a.operations):result;
 }
-export function rpc(store,message){
+export function rpc(store,message,context={}){
   if(!message||message.jsonrpc!=='2.0'||typeof message.method!=='string')return {jsonrpc:'2.0',id:message?.id??null,error:{code:-32600,message:'Invalid JSON-RPC request'}};
   if(message.id===undefined)return null;
   const respond=result=>({jsonrpc:'2.0',id:message.id,result});
   if(message.method==='initialize')return respond({protocolVersion:['2025-11-25','2025-06-18','2025-03-26','2024-11-05'].includes(message.params?.protocolVersion)?message.params.protocolVersion:'2025-11-25',capabilities:{tools:{},resources:{}},serverInfo:{name:'Freegma',version:VERSION},instructions:'Prefer bounded get_board view:outline, then view:nodes with nodeId for the frame being edited. Send expectedRevision when paging. For mutations use responseMode:compact to avoid repeating the entire board; full responses remain available. Read a board before editing; send expectedRevision with atomic operations. Reference images are separate from editable layers. Use native frames/text/shapes, save components/templates, then export React for implementation. All content is in local .free files and Assets folders; SQLite indexes file references. Native design boards support a separate flowOverlay layer with apply_flow_overlay, connecting actual native frames and trigger elements. Flows are also a separate workspace type: use create_flow_workspace, flow_sources and apply_flow to connect existing frame/element references; do not change source designs to edit a flow.'});
   if(message.method==='ping')return respond({});
-  if(message.method==='tools/list')return respond({tools:toolDefinitions});
+  if(message.method==='tools/list')return respond({tools:toolDefinitions.map(t=>({...t,securitySchemes:[{type:'noauth'}],_meta:{securitySchemes:[{type:'noauth'}]}}))});
   if(message.method==='resources/list')return respond({resources:store.workspaces().flatMap(w=>store.boards(w.id).map(b=>({uri:'freegma://board/'+b.id,name:b.name,mimeType:'application/json'})))});
   if(message.method==='resources/read'){try{const id=message.params?.uri?.match(/^freegma:\/\/board\/([\w-]+)$/)?.[1];if(!id)throw new Error('Unknown resource');return respond({contents:[{uri:message.params.uri,mimeType:'application/json',text:JSON.stringify(store.getBoard(id))}]});}catch(e){return {jsonrpc:'2.0',id:message.id,error:{code:-32002,message:e.message}};}}
-  if(message.method==='tools/call'){const success=value=>respond({content:[{type:'text',text:JSON.stringify(value)}],structuredContent:value,isError:false}),failure=e=>respond({content:[{type:'text',text:e.message}],isError:true});try{const value=callTool(store,message.params?.name,message.params?.arguments);return value?.then?value.then(success,failure):success(value);}catch(e){return failure(e);}}
+  if(message.method==='tools/call'){const success=value=>respond({content:[{type:'text',text:JSON.stringify(value)}],structuredContent:value,isError:false}),failure=e=>respond({content:[{type:'text',text:e.message}],isError:true});try{const value=callTool(store,message.params?.name,message.params?.arguments,context);return value?.then?value.then(success,failure):success(value);}catch(e){return failure(e);}}
   return {jsonrpc:'2.0',id:message.id,error:{code:-32601,message:'Method not found'}};
 }

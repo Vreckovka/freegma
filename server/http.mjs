@@ -7,14 +7,15 @@ import {FreegmaStore} from './store.mjs';
 import {VERSION} from '../shared/design.mjs';
 import {callTool} from './tools.mjs';
 import {buildRoot} from './paths.mjs';
-import {publicSettings,requestOrigin} from './public-access.mjs';
+import {publicSettings,requestOrigin,origins} from './public-access.mjs';
+import {handleMcp} from './mcp-http.mjs';
 import {packFree} from './free-format.mjs';
 import {brandAssets} from './brand-assets.mjs';
 import {sendText,editorAssets} from './text-response.mjs';
 import {boardResponses} from './board-response.mjs';
 export const defaultBuild=buildRoot;
 export function embedOrigins(value=process.env.FREEGMA_EMBED_ORIGINS||'http://127.0.0.1:4320,http://127.0.0.1:4318,http://localhost:4320'){return value.split(',').filter(Boolean).map(v=>{const u=new URL(v.trim());if(!['http:','https:'].includes(u.protocol)||u.origin!==v.trim())throw Error('Embedding origins must be HTTP(S) origins without paths.');return u.origin;});}
-export function createServer({store=new FreegmaStore(),build=process.env.FREEGMA_BUILD||defaultBuild,access=publicSettings()}={}){
+export function createServer({store=new FreegmaStore(),build=process.env.FREEGMA_BUILD||defaultBuild,access=publicSettings(),mcpOrigins=origins(process.env.FREEGMA_MCP_ORIGINS??'https://chatgpt.com')}={}){
   const downloads=new Map(),parents=embedOrigins(),serveBrand=brandAssets(build),serveEditor=editorAssets(build),serveBoard=boardResponses(store);
   const server=http.createServer(async(req,res)=>{
     const json=(res,status,data)=>sendText(req,res,status,JSON.stringify(data),{'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store'});
@@ -22,7 +23,10 @@ export function createServer({store=new FreegmaStore(),build=process.env.FREEGMA
     try{
       const settings=access();
       res.setHeader('Content-Security-Policy',"default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' blob: data:; connect-src 'self'; frame-ancestors 'self' "+[...new Set([...parents,...settings.embedOrigins||[]])].join(' '));
-      const origin=requestOrigin(req,settings.origins),url=new URL(req.url,origin),route=url.pathname;
+      const mcp=new URL(req.url,'http://localhost').pathname==='/mcp';
+      const origin=requestOrigin(req,settings.origins,mcp?mcpOrigins:[]),url=new URL(req.url,origin),route=url.pathname;
+      if(mcp)return await handleMcp(req,res,store,origin);
+      if(route.startsWith('/.well-known/'))return json(res,404,{error:'No authentication discovery is configured.'});
       if(serveBrand(req,res,url))return;
       const sourceDownload=route.match(/^\/api\/source-downloads\/([a-f0-9-]+)$/);
       if(sourceDownload&&req.method==='GET'){
