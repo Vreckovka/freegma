@@ -25,13 +25,13 @@ export function validateOverlay(overlay,nodes){
  if(overlay.ports!==undefined){if(!overlay.ports||typeof overlay.ports!=='object'||Array.isArray(overlay.ports)||Object.keys(overlay.ports).length>3000)fail('Invalid flow connectors.');for(const [owner,ports] of Object.entries(overlay.ports)){if(map.get(owner)?.type!=='frame'&&!refs.has(owner)&&!symbols.has(owner))fail('Connector owner must be a frame or flow symbol.');validatePorts(ports);}}
  for(const edge of overlay.edges){
   if(!edge||Object.keys(edge).some(k=>!fields.has(k))||!identifier(edge.id)||map.has(edge.id)||ids.has(edge.id))fail('Transition IDs must be unique identifiers.');ids.add(edge.id);
-  if(!['straight','if','repeat'].includes(edge.action))fail('Choose a Straight, If or Repeat action.');
+  if(!['none','straight','if','repeat'].includes(edge.action))fail('Choose None, Straight, If or Repeat.');
   validateRoute(edge.route);for(const key of ['fromPort','toPort'])if(edge[key]!==undefined&&!PORT_SIDES.includes(edge[key]))fail('Invalid transition connector.');
   if(edge.event!==undefined&&!TRANSITION_EVENTS.some(e=>e.id===edge.event))fail('Choose a valid trigger event.');
-  if(typeof edge.title!=='string'||!edge.title.trim()||edge.title.length>160||typeof edge.explanation!=='string'||edge.explanation.length>10000)fail('Add a short transition title and a valid description.');
+  if(typeof edge.title!=='string'||edge.title.length>160||typeof edge.explanation!=='string'||edge.explanation.length>10000)fail('Use an optional short transition title and a valid description.');
   if(!identifier(edge.fromFrameId)||!identifier(edge.toFrameId)||(map.get(edge.fromFrameId)?.type!=='frame'&&!refs.has(edge.fromFrameId)&&!symbols.has(edge.fromFrameId))||(map.get(edge.toFrameId)?.type!=='frame'&&!refs.has(edge.toFrameId)&&!symbols.has(edge.toFrameId)))fail('Choose native frames, references or flow symbols on this board.');
   if(symbols.get(edge.fromFrameId)?.kind==='end'||symbols.get(edge.toFrameId)?.kind==='start')fail('Start has no incoming transitions; End has no outgoing transitions.');
-  if(edge.fromFrameId===edge.toFrameId&&edge.action!=='repeat')fail('A transition back to the same frame must use Repeat.');
+  if(edge.fromFrameId===edge.toFrameId&&!['repeat','none'].includes(edge.action))fail('A transition back to the same frame must use Repeat or None.');
   if(edge.triggerId!=null&&(!identifier(edge.triggerId)||symbols.has(edge.fromFrameId)||!refs.has(edge.fromFrameId)&&!belongsToFrame(map,edge.triggerId,edge.fromFrameId)))fail('Trigger element must belong to the source frame.');
  }
  return overlay;

@@ -27,3 +27,4 @@
 
 /* Details stay above connector dots, endpoint handles and route guides. */
 .flow-arrow-popover{z-index:20}
+.flow-reference-caption{touch-action:none;user-select:none;cursor:grab}.flow-reference-caption:active{cursor:grabbing}
